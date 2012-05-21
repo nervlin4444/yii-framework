@@ -1,5 +1,14 @@
 <?php
 /**
+ * CArrayDataProvider class file.
+ *
+ * @author Qiang Xue <qiang.xue@gmail.com>
+ * @link http://www.yiiframework.com/
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
+ * @license http://www.yiiframework.com/license/
+ */
+
+/**
  * CArrayDataProvider implements a data provider based on a raw data array.
  *
  * The {@link rawData} property contains all data that may be sorted and/or paginated.
@@ -32,26 +41,28 @@
  * so that the provider knows which columns can be sorted.
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CArrayDataProvider.php 2317 2010-08-12 17:24:06Z qiang.xue $
+ * @version $Id: CArrayDataProvider.php 3353 2011-07-12 21:10:36Z alexander.makarow $
  * @package system.web
  * @since 1.1.4
  */
 class CArrayDataProvider extends CDataProvider
 {
 	/**
-	 * @var string the name of key field. Defaults to 'id'.
+	 * @var string the name of key field. Defaults to 'id'. If it's set to false,
+	 * keys of $rawData array are used.
 	 */
 	public $keyField='id';
 	/**
 	 * @var array the data that is not paginated or sorted. When pagination is enabled,
 	 * this property usually contains more elements than {@link data}.
+	 * The array elements must use zero-based integer keys.
 	 */
 	public $rawData=array();
 
 	/**
 	 * Constructor.
-	 * @param array the data that is not paginated or sorted.
-	 * @param array configuration (name=>value) to be applied as the initial property values of this class.
+	 * @param array $rawData the data that is not paginated or sorted. The array elements must use zero-based integer keys.
+	 * @param array $config configuration (name=>value) to be applied as the initial property values of this class.
 	 */
 	public function __construct($rawData,$config=array())
 	{
@@ -84,6 +95,8 @@ class CArrayDataProvider extends CDataProvider
 	 */
 	protected function fetchKeys()
 	{
+		if($this->keyField===false)
+			return array_keys($this->rawData);
 		$keys=array();
 		foreach($this->getData() as $i=>$data)
 			$keys[$i]=is_object($data) ? $data->{$this->keyField} : $data[$this->keyField];
@@ -103,20 +116,26 @@ class CArrayDataProvider extends CDataProvider
 	/**
 	 * Sorts the raw data according to the specified sorting instructions.
 	 * After calling this method, {@link rawData} will be modified.
-	 * @param array the sorting directions (field name => whether it is descending sort)
+	 * @param array $directions the sorting directions (field name => whether it is descending sort)
 	 */
 	protected function sortData($directions)
 	{
 		if(empty($directions))
 			return;
 		$args=array();
+		$dummy=array();
 		foreach($directions as $name=>$descending)
 		{
 			$column=array();
 			foreach($this->rawData as $index=>$data)
 				$column[$index]=is_object($data) ? $data->$name : $data[$name];
-			$args[]=$column;
-			$args[]=$descending ? SORT_DESC : SORT_ASC;
+			$args[]=&$column;
+			$dummy[]=&$column;
+			unset($column);
+			$direction=$descending ? SORT_DESC : SORT_ASC;
+			$args[]=&$direction;
+			$dummy[]=&$direction;
+			unset($direction);
 		}
 		$args[]=&$this->rawData;
 		call_user_func_array('array_multisort', $args);
@@ -124,7 +143,7 @@ class CArrayDataProvider extends CDataProvider
 
 	/**
 	 * Converts the "ORDER BY" clause into an array representing the sorting directions.
-	 * @param string the "ORDER BY" clause.
+	 * @param string $order the "ORDER BY" clause.
 	 * @return array the sorting directions (field name => whether it is descending sort)
 	 */
 	protected function getSortDirections($order)

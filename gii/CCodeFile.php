@@ -4,15 +4,18 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
 /**
  * CCodeFile represents a code file being generated.
  *
+ * @property string $relativePath The code file path relative to the application base path.
+ * @property string $type The code file extension (e.g. php, txt).
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CCodeFile.php 2101 2010-05-06 20:27:16Z qiang.xue $
+ * @version $Id: CCodeFile.php 3426 2011-10-25 00:01:09Z alexander.makarow $
  * @package system.gii
  * @since 1.1.2
  */
@@ -42,8 +45,8 @@ class CCodeFile extends CComponent
 
 	/**
 	 * Constructor.
-	 * @param string the file path that the new code should be saved to.
-	 * @param string the newly generated code
+	 * @param string $path the file path that the new code should be saved to.
+	 * @param string $content the newly generated code
 	 */
 	public function __construct($path,$content)
 	{

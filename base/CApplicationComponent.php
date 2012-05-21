@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -17,8 +17,10 @@
  * the {@link init()} method instead of the constructor. This has the advantage that
  * the application component can be customized through application configuration.
  *
+ * @property boolean $isInitialized Whether this application component has been initialized (ie, {@link init()} is invoked).
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CApplicationComponent.php 2359 2010-08-28 23:10:51Z mdomba $
+ * @version $Id: CApplicationComponent.php 3515 2011-12-28 12:29:24Z mdomba $
  * @package system.base
  * @since 1.0
  */
@@ -28,7 +30,6 @@ abstract class CApplicationComponent extends CComponent implements IApplicationC
 	 * @var array the behaviors that should be attached to this component.
 	 * The behaviors will be attached to the component when {@link init} is called.
 	 * Please refer to {@link CModel::behaviors} on how to specify the value of this property.
-	 * @since 1.0.2
 	 */
 	public $behaviors=array();
 
@@ -47,6 +48,7 @@ abstract class CApplicationComponent extends CComponent implements IApplicationC
 	}
 
 	/**
+	 * Checks if this application component bas been initialized.
 	 * @return boolean whether this application component has been initialized (ie, {@link init()} is invoked).
 	 */
 	public function getIsInitialized()

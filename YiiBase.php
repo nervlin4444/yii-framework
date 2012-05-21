@@ -4,9 +4,9 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
- * @version $Id: YiiBase.php 2428 2010-09-05 13:05:24Z qiang.xue $
+ * @version $Id: YiiBase.php 3564 2012-02-13 01:29:03Z qiang.xue $
  * @package system
  * @since 1.0
  */
@@ -49,18 +49,32 @@ defined('YII_ZII_PATH') or define('YII_ZII_PATH',YII_PATH.DIRECTORY_SEPARATOR.'z
  * you can customize methods of YiiBase.
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: YiiBase.php 2428 2010-09-05 13:05:24Z qiang.xue $
+ * @version $Id: YiiBase.php 3564 2012-02-13 01:29:03Z qiang.xue $
  * @package system
  * @since 1.0
  */
 class YiiBase
 {
+	/**
+	 * @var array class map used by the Yii autoloading mechanism.
+	 * The array keys are the class names and the array values are the corresponding class file paths.
+	 * @since 1.1.5
+	 */
+	public static $classMap=array();
+	/**
+	 * @var boolean whether to rely on PHP include path to autoload class files. Defaults to true.
+	 * You may set this to be false if your hosting environment doesn't allow changing PHP include path,
+	 * or if you want to append additional autoloaders to the default Yii autoloader.
+	 * @since 1.1.8
+	 */
+	public static $enableIncludePath=true;
+
 	private static $_aliases=array('system'=>YII_PATH,'zii'=>YII_ZII_PATH); // alias => path
 	private static $_imports=array();					// alias => class name or directory
-	private static $_classes=array();
 	private static $_includePaths;						// list of include paths
 	private static $_app;
 	private static $_logger;
+
 
 
 	/**
@@ -68,17 +82,18 @@ class YiiBase
 	 */
 	public static function getVersion()
 	{
-		return '1.1.4';
+		return '1.1.10';
 	}
 
 	/**
 	 * Creates a Web application instance.
-	 * @param mixed application configuration.
+	 * @param mixed $config application configuration.
 	 * If a string, it is treated as the path of the file that contains the configuration;
 	 * If an array, it is the actual configuration information.
 	 * Please make sure you specify the {@link CApplication::basePath basePath} property in the configuration,
 	 * which should point to the directory containing all application logic, template and data.
 	 * If not, the directory will be defaulted to 'protected'.
+	 * @return CWebApplication
 	 */
 	public static function createWebApplication($config=null)
 	{
@@ -87,12 +102,13 @@ class YiiBase
 
 	/**
 	 * Creates a console application instance.
-	 * @param mixed application configuration.
+	 * @param mixed $config application configuration.
 	 * If a string, it is treated as the path of the file that contains the configuration;
 	 * If an array, it is the actual configuration information.
 	 * Please make sure you specify the {@link CApplication::basePath basePath} property in the configuration,
 	 * which should point to the directory containing all application logic, template and data.
 	 * If not, the directory will be defaulted to 'protected'.
+	 * @return CConsoleApplication
 	 */
 	public static function createConsoleApplication($config=null)
 	{
@@ -101,19 +117,18 @@ class YiiBase
 
 	/**
 	 * Creates an application of the specified class.
-	 * @param string the application class name
-	 * @param mixed application configuration. This parameter will be passed as the parameter
+	 * @param string $class the application class name
+	 * @param mixed $config application configuration. This parameter will be passed as the parameter
 	 * to the constructor of the application class.
 	 * @return mixed the application instance
-	 * @since 1.0.10
 	 */
 	public static function createApplication($class,$config=null)
 	{
-if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.'.'.__METHOD__,$class);
 		return new $class($config);
 	}
 
 	/**
+	 * Returns the application singleton, null if the singleton has not been created yet.
 	 * @return CApplication the application singleton, null if the singleton has not been created yet.
 	 */
 	public static function app()
@@ -127,7 +142,7 @@ if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.'.'.__METHOD__,
 	 * Repeated invocation of this method or the CApplication constructor
 	 * will cause the throw of an exception.
 	 * To retrieve the application instance, use {@link app()}.
-	 * @param CApplication the application instance. If this is null, the existing
+	 * @param CApplication $app the application instance. If this is null, the existing
 	 * application singleton will be removed.
 	 * @throws CException if multiple application instances are registered.
 	 */
@@ -160,9 +175,7 @@ if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.'.'.__METHOD__,
 	 * Any additional parameters passed to this method will be
 	 * passed to the constructor of the object being created.
 	 *
-	 * NOTE: the array-typed configuration has been supported since version 1.0.1.
-	 *
-	 * @param mixed the configuration. It can be either a string or an array.
+	 * @param mixed $config the configuration. It can be either a string or an array.
 	 * @return mixed the created object
 	 * @throws CException if the configuration does not have a 'class' element.
 	 */
@@ -212,33 +225,73 @@ if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.'.'.__METHOD__,
 	}
 
 	/**
-	 * Imports the definition of a class or a directory of class files.
+	 * Imports a class or a directory.
 	 *
-	 * Path aliases are used to refer to the class file or directory being imported.
-	 * If importing a path alias ending with '.*', the alias is considered as a directory
-	 * which will be added to the PHP include paths; Otherwise, the alias is translated
-	 * to the path of a class file which is included when needed.
+	 * Importing a class is like including the corresponding class file.
+	 * The main difference is that importing a class is much lighter because it only
+	 * includes the class file when the class is referenced the first time.
 	 *
-	 * For example, importing 'system.web.*' will add the 'web' directory of the framework
-	 * to the PHP include paths; while importing 'system.web.CController' will include
-	 * the class file 'web/CController.php' when needed.
+	 * Importing a directory is equivalent to adding a directory into the PHP include path.
+	 * If multiple directories are imported, the directories imported later will take
+	 * precedence in class file searching (i.e., they are added to the front of the PHP include path).
 	 *
-	 * The same alias can be imported multiple times, but only the first time is effective.
+	 * Path aliases are used to import a class or directory. For example,
+	 * <ul>
+	 *   <li><code>application.components.GoogleMap</code>: import the <code>GoogleMap</code> class.</li>
+	 *   <li><code>application.components.*</code>: import the <code>components</code> directory.</li>
+	 * </ul>
 	 *
-	 * @param string path alias to be imported
-	 * @param boolean whether to include the class file immediately. If false, the class file
-	 * will be included only when the class is being used.
+	 * The same path alias can be imported multiple times, but only the first time is effective.
+	 * Importing a directory does not import any of its subdirectories.
+	 *
+	 * Starting from version 1.1.5, this method can also be used to import a class in namespace format
+	 * (available for PHP 5.3 or above only). It is similar to importing a class in path alias format,
+	 * except that the dot separator is replaced by the backslash separator. For example, importing
+	 * <code>application\components\GoogleMap</code> is similar to importing <code>application.components.GoogleMap</code>.
+	 * The difference is that the former class is using qualified name, while the latter unqualified.
+	 *
+	 * Note, importing a class in namespace format requires that the namespace is corresponding to
+	 * a valid path alias if we replace the backslash characters with dot characters.
+	 * For example, the namespace <code>application\components</code> must correspond to a valid
+	 * path alias <code>application.components</code>.
+	 *
+	 * @param string $alias path alias to be imported
+	 * @param boolean $forceInclude whether to include the class file immediately. If false, the class file
+	 * will be included only when the class is being used. This parameter is used only when
+	 * the path alias refers to a class.
 	 * @return string the class name or the directory that this alias refers to
 	 * @throws CException if the alias is invalid
 	 */
 	public static function import($alias,$forceInclude=false)
 	{
-//xxx(self::$_imports);	
 		if(isset(self::$_imports[$alias]))  // previously imported
 			return self::$_imports[$alias];
 
 		if(class_exists($alias,false) || interface_exists($alias,false))
 			return self::$_imports[$alias]=$alias;
+
+		if(($pos=strrpos($alias,'\\'))!==false) // a class name in PHP 5.3 namespace format
+		{
+			$namespace=str_replace('\\','.',ltrim(substr($alias,0,$pos),'\\'));
+			if(($path=self::getPathOfAlias($namespace))!==false)
+			{
+				$classFile=$path.DIRECTORY_SEPARATOR.substr($alias,$pos+1).'.php';
+				if($forceInclude)
+				{
+					if(is_file($classFile))
+						require($classFile);
+					else
+						throw new CException(Yii::t('yii','Alias "{alias}" is invalid. Make sure it points to an existing PHP file.',array('{alias}'=>$alias)));
+					self::$_imports[$alias]=$alias;
+				}
+				else
+					self::$classMap[$alias]=$classFile;
+				return $alias;
+			}
+			else
+				throw new CException(Yii::t('yii','Alias "{alias}" is invalid. Make sure it points to an existing directory.',
+					array('{alias}'=>$namespace)));
+		}
 
 		if(($pos=strrpos($alias,'.'))===false)  // a simple class name
 		{
@@ -247,12 +300,15 @@ if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.'.'.__METHOD__,
 			return $alias;
 		}
 
-		if(($className=(string)substr($alias,$pos+1))!=='*' && (class_exists($className,false) || interface_exists($className,false)))
+		$className=(string)substr($alias,$pos+1);
+		$isClass=$className!=='*';
+
+		if($isClass && (class_exists($className,false) || interface_exists($className,false)))
 			return self::$_imports[$alias]=$className;
 
 		if(($path=self::getPathOfAlias($alias))!==false)
 		{
-			if($className!=='*')
+			if($isClass)
 			{
 				if($forceInclude)
 				{
@@ -263,7 +319,7 @@ if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.'.'.__METHOD__,
 					self::$_imports[$alias]=$className;
 				}
 				else
-					self::$_classes[$className]=$path.'.php';
+					self::$classMap[$className]=$path.'.php';
 				return $className;
 			}
 			else  // a directory
@@ -274,9 +330,12 @@ if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.'.'.__METHOD__,
 					if(($pos=array_search('.',self::$_includePaths,true))!==false)
 						unset(self::$_includePaths[$pos]);
 				}
+
 				array_unshift(self::$_includePaths,$path);
-				if(set_include_path('.'.PATH_SEPARATOR.implode(PATH_SEPARATOR,self::$_includePaths))===false)
-					throw new CException(Yii::t('yii','Unable to import "{alias}". Please check your server configuration to make sure you are allowed to change PHP include_path.',array('{alias}'=>$alias)));
+
+				if(self::$enableIncludePath && set_include_path('.'.PATH_SEPARATOR.implode(PATH_SEPARATOR,self::$_includePaths))===false)
+					self::$enableIncludePath=false;
+
 				return self::$_imports[$alias]=$path;
 			}
 		}
@@ -289,7 +348,7 @@ if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.'.'.__METHOD__,
 	 * Translates an alias into a file path.
 	 * Note, this method does not ensure the existence of the resulting file path.
 	 * It only checks if the root alias is valid or not.
-	 * @param string alias (e.g. system.web.CController)
+	 * @param string $alias alias (e.g. system.web.CController)
 	 * @return mixed file path corresponding to the alias, false if the alias is invalid.
 	 */
 	public static function getPathOfAlias($alias)
@@ -313,8 +372,8 @@ if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.'.'.__METHOD__,
 	/**
 	 * Create a path alias.
 	 * Note, this method neither checks the existence of the path nor normalizes the path.
-	 * @param string alias to the path
-	 * @param string the path corresponding to the alias. If this is null, the corresponding
+	 * @param string $alias alias to the path
+	 * @param string $path the path corresponding to the alias. If this is null, the corresponding
 	 * path alias will be removed.
 	 */
 	public static function setPathOfAlias($alias,$path)
@@ -328,20 +387,44 @@ if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.'.'.__METHOD__,
 	/**
 	 * Class autoload loader.
 	 * This method is provided to be invoked within an __autoload() magic method.
-	 * @param string class name
+	 * @param string $className class name
 	 * @return boolean whether the class has been loaded successfully
 	 */
 	public static function autoload($className)
 	{
-//xxx($className,isset(self::$_classes[$className]),self::$_classes);
 		// use include so that the error PHP file may appear
-		if(isset(self::$_coreClasses[$className]))
+		if(isset(self::$classMap[$className]))
+			include(self::$classMap[$className]);
+		else if(isset(self::$_coreClasses[$className]))
 			include(YII_PATH.self::$_coreClasses[$className]);
-		else if(isset(self::$_classes[$className]))
-			include(self::$_classes[$className]);
 		else
 		{
-			include($className.'.php');
+			// include class file relying on include_path
+			if(strpos($className,'\\')===false)  // class without namespace
+			{
+				if(self::$enableIncludePath===false)
+				{
+					foreach(self::$_includePaths as $path)
+					{
+						$classFile=$path.DIRECTORY_SEPARATOR.$className.'.php';
+						if(is_file($classFile))
+						{
+							include($classFile);
+							break;
+						}
+					}
+				}
+				else
+					include($className.'.php');
+			}
+			else  // class name with namespace in PHP 5.3
+			{
+				$namespace=str_replace('\\','.',ltrim($className,'\\'));
+				if(($path=self::getPathOfAlias($namespace))!==false)
+					include($path.'.php');
+				else
+					return false;
+			}
 			return class_exists($className,false) || interface_exists($className,false);
 		}
 		return true;
@@ -350,8 +433,8 @@ if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.'.'.__METHOD__,
 	/**
 	 * Writes a trace message.
 	 * This method will only log a message when the application is in debug mode.
-	 * @param string message to be logged
-	 * @param string category of the message
+	 * @param string $msg message to be logged
+	 * @param string $category category of the message
 	 * @see log
 	 */
 	public static function trace($msg,$category='application')
@@ -365,9 +448,9 @@ if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.'.'.__METHOD__,
 	 * Messages logged by this method may be retrieved via {@link CLogger::getLogs}
 	 * and may be recorded in different media, such as file, email, database, using
 	 * {@link CLogRouter}.
-	 * @param string message to be logged
-	 * @param string level of the message (e.g. 'trace', 'warning', 'error'). It is case-insensitive.
-	 * @param string category of the message (e.g. 'system.web'). It is case-insensitive.
+	 * @param string $msg message to be logged
+	 * @param string $level level of the message (e.g. 'trace', 'warning', 'error'). It is case-insensitive.
+	 * @param string $category category of the message (e.g. 'system.web'). It is case-insensitive.
 	 */
 	public static function log($msg,$level=CLogger::LEVEL_INFO,$category='application')
 	{
@@ -379,15 +462,11 @@ if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.'.'.__METHOD__,
 			$count=0;
 			foreach($traces as $trace)
 			{
-				if(isset($trace['file'],$trace['line']))
+				if(isset($trace['file'],$trace['line']) && strpos($trace['file'],YII_PATH)!==0)
 				{
-					$className=substr(basename($trace['file']),0,-4);
-					if(!isset(self::$_coreClasses[$className]) && $className!=='YiiBase')
-					{
-						$msg.="\nin ".$trace['file'].' ('.$trace['line'].')';
-						if(++$count>=YII_TRACE_LEVEL)
-							break;
-					}
+					$msg.="\nin ".$trace['file'].' ('.$trace['line'].')';
+					if(++$count>=YII_TRACE_LEVEL)
+						break;
 				}
 			}
 		}
@@ -411,8 +490,8 @@ if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.'.'.__METHOD__,
 	 * Yii::endProfile('block1');
 	 * Yii::endProfile('block2');
 	 * </pre>
-	 * @param string token for the code block
-	 * @param string the category of this log message
+	 * @param string $token token for the code block
+	 * @param string $category the category of this log message
 	 * @see endProfile
 	 */
 	public static function beginProfile($token,$category='application')
@@ -423,8 +502,8 @@ if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.'.'.__METHOD__,
 	/**
 	 * Marks the end of a code block for profiling.
 	 * This has to be matched with a previous call to {@link beginProfile()} with the same token.
-	 * @param string token for the code block
-	 * @param string the category of this log message
+	 * @param string $token token for the code block
+	 * @param string $category the category of this log message
 	 * @see beginProfile
 	 */
 	public static function endProfile($token,$category='application')
@@ -444,51 +523,80 @@ if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.'.'.__METHOD__,
 	}
 
 	/**
+	 * Sets the logger object.
+	 * @param CLogger $logger the logger object.
+	 * @since 1.1.8
+	 */
+	public static function setLogger($logger)
+	{
+		self::$_logger=$logger;
+	}
+
+	/**
+	 * Returns a string that can be displayed on your Web page showing Powered-by-Yii information
 	 * @return string a string that can be displayed on your Web page showing Powered-by-Yii information
 	 */
 	public static function powered()
 	{
-		return 'Powered by <a href="http://www.yiiframework.com/" rel="external">Yii Framework</a>.';
+		return Yii::t('yii','Powered by {yii}.', array('{yii}'=>'<a href="http://www.yiiframework.com/" rel="external">Yii Framework</a>'));
 	}
 
 	/**
 	 * Translates a message to the specified language.
-	 * Starting from version 1.0.2, this method supports choice format (see {@link CChoiceFormat}),
+	 * This method supports choice format (see {@link CChoiceFormat}),
 	 * i.e., the message returned will be chosen from a few candidates according to the given
 	 * number value. This feature is mainly used to solve plural format issue in case
 	 * a message has different plural forms in some languages.
-	 * @param string message category. Please use only word letters. Note, category 'yii' is
+	 * @param string $category message category. Please use only word letters. Note, category 'yii' is
 	 * reserved for Yii framework core code use. See {@link CPhpMessageSource} for
 	 * more interpretation about message category.
-	 * @param string the original message
-	 * @param array parameters to be applied to the message using <code>strtr</code>.
-	 * Starting from version 1.0.2, the first parameter can be a number without key.
+	 * @param string $message the original message
+	 * @param array $params parameters to be applied to the message using <code>strtr</code>.
+	 * The first parameter can be a number without key.
 	 * And in this case, the method will call {@link CChoiceFormat::format} to choose
 	 * an appropriate message translation.
-	 * @param string which message source application component to use.
+	 * Starting from version 1.1.6 you can pass parameter for {@link CChoiceFormat::format}
+	 * or plural forms format without wrapping it with array.
+	 * @param string $source which message source application component to use.
 	 * Defaults to null, meaning using 'coreMessages' for messages belonging to
 	 * the 'yii' category and using 'messages' for the rest messages.
-	 * @param string the target language. If null (default), the {@link CApplication::getLanguage application language} will be used.
-	 * This parameter has been available since version 1.0.3.
+	 * @param string $language the target language. If null (default), the {@link CApplication::getLanguage application language} will be used.
 	 * @return string the translated message
 	 * @see CMessageSource
 	 */
 	public static function t($category,$message,$params=array(),$source=null,$language=null)
 	{
-//System::xxx("yiibase.t",$message,$source);
 		if(self::$_app!==null)
 		{
 			if($source===null)
 				$source=($category==='yii'||$category==='zii')?'coreMessages':'messages';
 			if(($source=self::$_app->getComponent($source))!==null)
 				$message=$source->translate($category,$message,$language);
-//System::xxx("yiibase.t",$message,$source);
 		}
 		if($params===array())
 			return $message;
+		if(!is_array($params))
+			$params=array($params);
 		if(isset($params[0])) // number choice
 		{
-			$message=CChoiceFormat::format($message,$params[0]);
+			if(strpos($message,'|')!==false)
+			{
+				if(strpos($message,'#')===false)
+				{
+					$chunks=explode('|',$message);
+					$expressions=self::$_app->getLocale($language)->getPluralRules();
+					if($n=min(count($chunks),count($expressions)))
+					{
+						for($i=0;$i<$n;$i++)
+							$chunks[$i]=$expressions[$i].'#'.$chunks[$i];
+
+						$message=implode('|',$chunks);
+					}
+				}
+				$message=CChoiceFormat::format($message,$params[0]);
+			}
+			if(!isset($params['{n}']))
+				$params['{n}']=$params[0];
 			unset($params[0]);
 		}
 		return $params!==array() ? strtr($message,$params) : $message;
@@ -498,14 +606,22 @@ if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.'.'.__METHOD__,
 	 * Registers a new class autoloader.
 	 * The new autoloader will be placed before {@link autoload} and after
 	 * any other existing autoloaders.
-	 * @param callback a valid PHP callback (function name or array($className,$methodName)).
-	 * @since 1.0.10
+	 * @param callback $callback a valid PHP callback (function name or array($className,$methodName)).
+	 * @param boolean $append whether to append the new autoloader after the default Yii autoloader.
 	 */
-	public static function registerAutoloader($callback)
+	public static function registerAutoloader($callback, $append=false)
 	{
-		spl_autoload_unregister(array('YiiBase','autoload'));
-		spl_autoload_register($callback);
-		spl_autoload_register(array('YiiBase','autoload'));
+		if($append)
+		{
+			self::$enableIncludePath=false;
+			spl_autoload_register($callback);
+		}
+		else
+		{
+			spl_autoload_unregister(array('YiiBase','autoload'));
+			spl_autoload_register($callback);
+			spl_autoload_register(array('YiiBase','autoload'));
+		}
 	}
 
 	/**
@@ -557,6 +673,7 @@ if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.'.'.__METHOD__,
 		'CStack' => '/collections/CStack.php',
 		'CStackIterator' => '/collections/CStackIterator.php',
 		'CTypedList' => '/collections/CTypedList.php',
+		'CTypedMap' => '/collections/CTypedMap.php',
 		'CConsoleApplication' => '/console/CConsoleApplication.php',
 		'CConsoleCommand' => '/console/CConsoleCommand.php',
 		'CConsoleCommandRunner' => '/console/CConsoleCommandRunner.php',
@@ -565,6 +682,7 @@ if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.'.'.__METHOD__,
 		'CDbConnection' => '/db/CDbConnection.php',
 		'CDbDataReader' => '/db/CDbDataReader.php',
 		'CDbException' => '/db/CDbException.php',
+		'CDbMigration' => '/db/CDbMigration.php',
 		'CDbTransaction' => '/db/CDbTransaction.php',
 		'CActiveFinder' => '/db/ar/CActiveFinder.php',
 		'CActiveRecord' => '/db/ar/CActiveRecord.php',
@@ -623,6 +741,7 @@ if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.'.'.__METHOD__,
 		'CBooleanValidator' => '/validators/CBooleanValidator.php',
 		'CCaptchaValidator' => '/validators/CCaptchaValidator.php',
 		'CCompareValidator' => '/validators/CCompareValidator.php',
+		'CDateValidator' => '/validators/CDateValidator.php',
 		'CDefaultValueValidator' => '/validators/CDefaultValueValidator.php',
 		'CEmailValidator' => '/validators/CEmailValidator.php',
 		'CExistValidator' => '/validators/CExistValidator.php',

@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -36,8 +36,11 @@
  * php path/to/entry_script.php help <command name>
  * </pre>
  *
+ * @property string $commandPath The directory that contains the command classes. Defaults to 'protected/commands'.
+ * @property CConsoleCommandRunner $commandRunner The command runner.
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CConsoleApplication.php 1678 2010-01-07 21:02:00Z qiang.xue $
+ * @version $Id: CConsoleApplication.php 3426 2011-10-25 00:01:09Z alexander.makarow $
  * @package system.console
  * @since 1.0
  */
@@ -101,23 +104,39 @@ class CConsoleApplication extends CApplication
 	 * Displays the captured PHP error.
 	 * This method displays the error in console mode when there is
 	 * no active error handler.
-	 * @param integer error code
-	 * @param string error message
-	 * @param string error file
-	 * @param string error line
+	 * @param integer $code error code
+	 * @param string $message error message
+	 * @param string $file error file
+	 * @param string $line error line
 	 */
 	public function displayError($code,$message,$file,$line)
 	{
 		echo "PHP Error[$code]: $message\n";
-		echo "in file $file at line $line\n";
-		debug_print_backtrace();
+		echo "    in file $file at line $line\n";
+		$trace=debug_backtrace();
+		// skip the first 4 stacks as they do not tell the error position
+		if(count($trace)>4)
+			$trace=array_slice($trace,4);
+		foreach($trace as $i=>$t)
+		{
+			if(!isset($t['file']))
+				$t['file']='unknown';
+			if(!isset($t['line']))
+				$t['line']=0;
+			if(!isset($t['function']))
+				$t['function']='unknown';
+			echo "#$i {$t['file']}({$t['line']}): ";
+			if(isset($t['object']) && is_object($t['object']))
+				echo get_class($t['object']).'->';
+			echo "{$t['function']}()\n";
+		}
 	}
 
 	/**
 	 * Displays the uncaught PHP exception.
 	 * This method displays the exception in console mode when there is
 	 * no active error handler.
-	 * @param Exception the uncaught exception
+	 * @param Exception $exception the uncaught exception
 	 */
 	public function displayException($exception)
 	{
@@ -129,13 +148,14 @@ class CConsoleApplication extends CApplication
 	 */
 	public function getCommandPath()
 	{
-		if($this->_commandPath===null)
-			$this->setCommandPath($this->getBasePath().DIRECTORY_SEPARATOR.'commands');
+		$applicationCommandPath = $this->getBasePath().DIRECTORY_SEPARATOR.'commands';
+		if($this->_commandPath===null && file_exists($applicationCommandPath))
+			$this->setCommandPath($applicationCommandPath);
 		return $this->_commandPath;
 	}
 
 	/**
-	 * @param string the directory that contains the command classes.
+	 * @param string $value the directory that contains the command classes.
 	 * @throws CException if the directory is invalid
 	 */
 	public function setCommandPath($value)

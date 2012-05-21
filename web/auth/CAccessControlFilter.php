@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -12,8 +12,12 @@
  * CAccessControlFilter performs authorization checks for the specified actions.
  *
  * By enabling this filter, controller actions can be checked for access permissions.
- * Only when the user is allowed by one of the security rules, will he be able
- * to access the action.
+ * When the user is not denied by one of the security rules or allowed by a rule explicitly,
+ * he will be able to access the action.
+ *
+ * For maximum security consider adding
+ * <pre>array('deny')</pre>
+ * as a last rule in a list so all actions will be denied by default.
  *
  * To specify the access rules, set the {@link setRules rules} property, which should
  * be an array of the rules. Each rule is specified as an array of the following structure:
@@ -21,9 +25,9 @@
  * array(
  *   'allow',  // or 'deny'
  *   // optional, list of action IDs (case insensitive) that this rule applies to
+ *   // if not specified, rule applies to all actions
  *   'actions'=>array('edit', 'delete'),
  *   // optional, list of controller IDs (case insensitive) that this rule applies to
- *   // This option is available since version 1.0.3.
  *   'controllers'=>array('post', 'admin/user'),
  *   // optional, list of usernames (case insensitive) that this rule applies to
  *   // Use * to represent all users, ? guest users, and @ authenticated users
@@ -36,7 +40,6 @@
  *   // optional, list of request types (case insensitive) that this rule applies to
  *   'verbs'=>array('GET', 'POST'),
  *   // optional, a PHP expression whose value indicates whether this rule applies
- *   // This option is available since version 1.0.3.
  *   'expression'=>'!$user->isGuest && $user->level==2',
  *   // optional, the customized error message to be displayed
  *   // This option is available since version 1.1.1.
@@ -44,8 +47,10 @@
  * )
  * </pre>
  *
+ * @property array $rules List of access rules.
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CAccessControlFilter.php 2192 2010-06-15 21:43:32Z alexander.makarow $
+ * @version $Id: CAccessControlFilter.php 3515 2011-12-28 12:29:24Z mdomba $
  * @package system.web.auth
  * @since 1.0
  */
@@ -70,7 +75,7 @@ class CAccessControlFilter extends CFilter
 	}
 
 	/**
-	 * @param array list of access rules.
+	 * @param array $rules list of access rules.
 	 */
 	public function setRules($rules)
 	{
@@ -94,7 +99,7 @@ class CAccessControlFilter extends CFilter
 
 	/**
 	 * Performs the pre-action filtering.
-	 * @param CFilterChain the filter chain that the filter is on.
+	 * @param CFilterChain $filterChain the filter chain that the filter is on.
 	 * @return boolean whether the filtering process should continue and the action
 	 * should be executed.
 	 */
@@ -124,7 +129,7 @@ class CAccessControlFilter extends CFilter
 	 * Resolves the error message to be displayed.
 	 * This method will check {@link message} and {@link CAccessRule::message} to see
 	 * what error message should be displayed.
-	 * @param CAccessRule the access rule
+	 * @param CAccessRule $rule the access rule
 	 * @return string the error message
 	 * @since 1.1.1
 	 */
@@ -141,9 +146,8 @@ class CAccessControlFilter extends CFilter
 	/**
 	 * Denies the access of the user.
 	 * This method is invoked when access check fails.
-	 * @param IWebUser the current user
-	 * @param string the error message to be displayed
-	 * @since 1.0.5
+	 * @param IWebUser $user the current user
+	 * @param string $message the error message to be displayed
 	 */
 	protected function accessDenied($user,$message)
 	{
@@ -159,7 +163,7 @@ class CAccessControlFilter extends CFilter
  * CAccessRule represents an access rule that is managed by {@link CAccessControlFilter}.
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CAccessControlFilter.php 2192 2010-06-15 21:43:32Z alexander.makarow $
+ * @version $Id: CAccessControlFilter.php 3515 2011-12-28 12:29:24Z mdomba $
  * @package system.web.auth
  * @since 1.0
  */
@@ -171,15 +175,16 @@ class CAccessRule extends CComponent
 	public $allow;
 	/**
 	 * @var array list of action IDs that this rule applies to. The comparison is case-insensitive.
+	 * If no actions are specified, rule applies to all actions.
 	 */
 	public $actions;
 	/**
 	 * @var array list of controler IDs that this rule applies to. The comparison is case-insensitive.
-	 * @since 1.0.4
 	 */
 	public $controllers;
 	/**
 	 * @var array list of user names that this rule applies to. The comparison is case-insensitive.
+	 * If no user names are specified, rule applies to all users.
 	 */
 	public $users;
 	/**
@@ -202,14 +207,13 @@ class CAccessRule extends CComponent
 	/**
 	 * @var string a PHP expression whose value indicates whether this rule should be applied.
 	 * In this expression, you can use <code>$user</code> which refers to <code>Yii::app()->user</code>.
-	 * Starting from version 1.0.11, the expression can also be a valid PHP callback,
+	 * The expression can also be a valid PHP callback,
 	 * including class method name (array(ClassName/Object, MethodName)),
 	 * or anonymous function (PHP 5.3.0+). The function/method signature should be as follows:
 	 * <pre>
 	 * function foo($user, $rule) { ... }
 	 * </pre>
 	 * where $user is the current application user object and $rule is this access rule.
-	 * @since 1.0.3
 	 */
 	public $expression;
 	/**
@@ -222,11 +226,11 @@ class CAccessRule extends CComponent
 
 	/**
 	 * Checks whether the Web user is allowed to perform the specified action.
-	 * @param CWebUser the user object
-	 * @param CController the controller currently being executed
-	 * @param CAction the action to be performed
-	 * @param string the request IP address
-	 * @param string the request verb (GET, POST, etc.)
+	 * @param CWebUser $user the user object
+	 * @param CController $controller the controller currently being executed
+	 * @param CAction $action the action to be performed
+	 * @param string $ip the request IP address
+	 * @param string $verb the request verb (GET, POST, etc.)
 	 * @return integer 1 if the user is allowed, -1 if the user is denied, 0 if the rule does not apply to the user
 	 */
 	public function isUserAllowed($user,$controller,$action,$ip,$verb)
@@ -244,7 +248,7 @@ class CAccessRule extends CComponent
 	}
 
 	/**
-	 * @param CAction the action
+	 * @param CAction $action the action
 	 * @return boolean whether the rule applies to the action
 	 */
 	protected function isActionMatched($action)
@@ -253,7 +257,7 @@ class CAccessRule extends CComponent
 	}
 
 	/**
-	 * @param CAction the action
+	 * @param CAction $controller the action
 	 * @return boolean whether the rule applies to the action
 	 */
 	protected function isControllerMatched($controller)
@@ -262,7 +266,7 @@ class CAccessRule extends CComponent
 	}
 
 	/**
-	 * @param IWebUser the user
+	 * @param IWebUser $user the user
 	 * @return boolean whether the rule applies to the user
 	 */
 	protected function isUserMatched($user)
@@ -284,7 +288,7 @@ class CAccessRule extends CComponent
 	}
 
 	/**
-	 * @param IWebUser the user object
+	 * @param IWebUser $user the user object
 	 * @return boolean whether the rule applies to the role
 	 */
 	protected function isRoleMatched($user)
@@ -300,7 +304,7 @@ class CAccessRule extends CComponent
 	}
 
 	/**
-	 * @param string the IP address
+	 * @param string $ip the IP address
 	 * @return boolean whether the rule applies to the IP address
 	 */
 	protected function isIpMatched($ip)
@@ -316,7 +320,7 @@ class CAccessRule extends CComponent
 	}
 
 	/**
-	 * @param string the request method
+	 * @param string $verb the request method
 	 * @return boolean whether the rule applies to the request
 	 */
 	protected function isVerbMatched($verb)
@@ -325,9 +329,8 @@ class CAccessRule extends CComponent
 	}
 
 	/**
-	 * @param IWebUser the user
+	 * @param IWebUser $user the user
 	 * @return boolean the expression value. True if the expression is not specified.
-	 * @since 1.0.3
 	 */
 	protected function isExpressionMatched($user)
 	{

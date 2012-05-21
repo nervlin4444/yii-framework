@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -15,8 +15,12 @@
  * Child classes should override its {@link generateDependentData} for
  * actual dependency checking.
  *
+ * @property boolean $hasChanged Whether the dependency has changed.
+ * @property mixed $dependentData The data used to determine if dependency has been changed.
+ * This data is available after {@link evaluateDependency} is called.
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CCacheDependency.php 1678 2010-01-07 21:02:00Z qiang.xue $
+ * @version $Id: CCacheDependency.php 3426 2011-10-25 00:01:09Z alexander.makarow $
  * @package system.caching.dependencies
  * @since 1.0
  */

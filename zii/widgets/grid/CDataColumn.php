@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -21,7 +21,7 @@ Yii::import('zii.widgets.grid.CGridColumn');
  * value will be used by {@link CSort} to render a clickable link in the header cell to trigger the sorting.
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CDataColumn.php 2326 2010-08-20 17:02:07Z qiang.xue $
+ * @version $Id: CDataColumn.php 3448 2011-11-18 10:21:42Z mdomba $
  * @package zii.widgets.grid
  * @since 1.1
  */
@@ -30,7 +30,13 @@ class CDataColumn extends CGridColumn
 	/**
 	 * @var string the attribute name of the data model. The corresponding attribute value will be rendered
 	 * in each data cell. If {@link value} is specified, this property will be ignored
-	 * unless the column needs to be sortable.
+	 * unless the column needs to be sortable or filtered.
+	 * @see value
+	 * @see sortable
+	 */
+	/**
+	 * @var string the attribute name of the data model. Used for column sorting, filtering and to render the corresponding
+	 * attribute value in each data cell. If {@link value} is specified it will be used to rendered the data cell instead of the attribute value.
 	 * @see value
 	 * @see sortable
 	 */
@@ -50,19 +56,20 @@ class CDataColumn extends CGridColumn
 	 */
 	public $type='text';
 	/**
-	 * @var boolean whether the column is sortable. If so, the header celll will contain a link that may trigger the sorting.
+	 * @var boolean whether the column is sortable. If so, the header cell will contain a link that may trigger the sorting.
 	 * Defaults to true. Note that if {@link name} is not set, or if {@link name} is not allowed by {@link CSort},
 	 * this property will be treated as false.
 	 * @see name
 	 */
 	public $sortable=true;
 	/**
-	 * @var mixed the HTML code representing a filter input (e.g. a text field, a dropdown list)
+	 * @var mixed the HTML code representing a filter input (eg a text field, a dropdown list)
 	 * that is used for this data column. This property is effective only when
-	 * {@link CGridView::enableFiltering} is set true.
+	 * {@link CGridView::filter} is set.
 	 * If this property is not set, a text field will be generated as the filter input;
 	 * If this property is an array, a dropdown list will be generated that uses this property value as
 	 * the list options.
+	 * If you don't want a filter for this data column, set this value to false.
 	 * @since 1.1.1
 	 */
 	public $filter;
@@ -88,14 +95,14 @@ class CDataColumn extends CGridColumn
 	 */
 	protected function renderFilterCellContent()
 	{
-		if($this->filter!==false && $this->grid->filter!==null && $this->name!==null && strpos($this->name,'.')===false)
+		if(is_string($this->filter))
+			echo $this->filter;
+		else if($this->filter!==false && $this->grid->filter!==null && $this->name!==null && strpos($this->name,'.')===false)
 		{
 			if(is_array($this->filter))
 				echo CHtml::activeDropDownList($this->grid->filter, $this->name, $this->filter, array('id'=>false,'prompt'=>''));
 			else if($this->filter===null)
 				echo CHtml::activeTextField($this->grid->filter, $this->name, array('id'=>false));
-			else
-				echo $this->filter;
 		}
 		else
 			parent::renderFilterCellContent();
@@ -123,8 +130,8 @@ class CDataColumn extends CGridColumn
 	/**
 	 * Renders the data cell content.
 	 * This method evaluates {@link value} or {@link name} and renders the result.
-	 * @param integer the row number (zero-based)
-	 * @param mixed the data associated with the row
+	 * @param integer $row the row number (zero-based)
+	 * @param mixed $data the data associated with the row
 	 */
 	protected function renderDataCellContent($row,$data)
 	{

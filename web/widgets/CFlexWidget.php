@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -15,8 +15,10 @@
  * (without the .swf suffix), and set {@link baseUrl} to be URL (without the ending slash)
  * of the directory containing the SWF file of the Flex application.
  *
+ * @property string $flashVarsAsString The flash parameter string.
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CFlexWidget.php 1766 2010-02-01 00:27:29Z qiang.xue $
+ * @version $Id: CFlexWidget.php 3515 2011-12-28 12:29:24Z mdomba $
  * @package system.web.widgets
  * @since 1.0
  */
@@ -93,7 +95,6 @@ class CFlexWidget extends CWidget
 
 	/**
 	 * Registers the needed CSS and JavaScript.
-	 * @since 1.0.1
 	 */
 	public function registerClientScript()
 	{

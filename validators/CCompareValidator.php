@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -20,11 +20,19 @@
  *
  * The comparison can be either {@link strict} or not.
  *
- * Starting from version 1.0.8, CCompareValidator supports different comparison operators.
+ * CCompareValidator supports different comparison operators.
  * Previously, it only compares to see if two values are equal or not.
  *
+ * When using the {@link message} property to define a custom error message, the message
+ * may contain additional placeholders that will be replaced with the actual content. In addition
+ * to the "{attribute}" placeholder, recognized by all validators (see {@link CValidator}),
+ * CCompareValidator allows for the following placeholders to be specified:
+ * <ul>
+ * <li>{compareValue}: replaced with the constant value being compared with {@link compareValue}.</li>
+ * </ul>
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CCompareValidator.php 1678 2010-01-07 21:02:00Z qiang.xue $
+ * @version $Id: CCompareValidator.php 3515 2011-12-28 12:29:24Z mdomba $
  * @package system.validators
  * @since 1.0
  */
@@ -61,15 +69,14 @@ class CCompareValidator extends CValidator
 	 * <li>'<': validates to see if the value being validated is less than the value being compared with.</li>
 	 * <li>'<=': validates to see if the value being validated is less than or equal to the value being compared with.</li>
 	 * </ul>
-	 * @since 1.0.8
 	 */
 	public $operator='=';
 
 	/**
 	 * Validates the attribute of the object.
 	 * If there is any error, the error message is added to the object.
-	 * @param CModel the object being validated
-	 * @param string the attribute being validated
+	 * @param CModel $object the object being validated
+	 * @param string $attribute the attribute being validated
 	 */
 	protected function validateAttribute($object,$attribute)
 	{
@@ -133,5 +140,77 @@ class CCompareValidator extends CValidator
 			default:
 				throw new CException(Yii::t('yii','Invalid operator "{operator}".',array('{operator}'=>$this->operator)));
 		}
+	}
+
+	/**
+	 * Returns the JavaScript needed for performing client-side validation.
+	 * @param CModel $object the data object being validated
+	 * @param string $attribute the name of the attribute to be validated.
+	 * @return string the client-side validation script.
+	 * @see CActiveForm::enableClientValidation
+	 * @since 1.1.7
+	 */
+	public function clientValidateAttribute($object,$attribute)
+	{
+		if($this->compareValue !== null)
+		{
+			$compareTo=$this->compareValue;
+			$compareValue=CJSON::encode($this->compareValue);
+		}
+		else
+		{
+			$compareAttribute=$this->compareAttribute === null ? $attribute . '_repeat' : $this->compareAttribute;
+			$compareValue="\$('#" . (CHtml::activeId($object, $compareAttribute)) . "').val()";
+			$compareTo=$object->getAttributeLabel($compareAttribute);
+		}
+
+		$message=$this->message;
+		switch($this->operator)
+		{
+			case '=':
+			case '==':
+				if($message===null)
+					$message=Yii::t('yii','{attribute} must be repeated exactly.');
+				$condition='value!='.$compareValue;
+				break;
+			case '!=':
+				if($message===null)
+					$message=Yii::t('yii','{attribute} must not be equal to "{compareValue}".');
+				$condition='value=='.$compareValue;
+				break;
+			case '>':
+				if($message===null)
+					$message=Yii::t('yii','{attribute} must be greater than "{compareValue}".');
+				$condition='parseFloat(value)<=parseFloat('.$compareValue.')';
+				break;
+			case '>=':
+				if($message===null)
+					$message=Yii::t('yii','{attribute} must be greater than or equal to "{compareValue}".');
+				$condition='parseFloat(value)<parseFloat('.$compareValue.')';
+				break;
+			case '<':
+				if($message===null)
+					$message=Yii::t('yii','{attribute} must be less than "{compareValue}".');
+				$condition='parseFloat(value)>=parseFloat('.$compareValue.')';
+				break;
+			case '<=':
+				if($message===null)
+					$message=Yii::t('yii','{attribute} must be less than or equal to "{compareValue}".');
+				$condition='parseFloat(value)>parseFloat('.$compareValue.')';
+				break;
+			default:
+				throw new CException(Yii::t('yii','Invalid operator "{operator}".',array('{operator}'=>$this->operator)));
+		}
+
+		$message=strtr($message,array(
+			'{attribute}'=>$object->getAttributeLabel($attribute),
+			'{compareValue}'=>$compareTo,
+		));
+
+		return "
+if(".($this->allowEmpty ? "$.trim(value)!='' && " : '').$condition.") {
+	messages.push(".CJSON::encode($message).");
+}
+";
 	}
 }

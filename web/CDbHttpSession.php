@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -35,8 +35,10 @@
  * and set {@link autoCreateSessionTable} to be false. This will greatly improve the performance.
  * You may also create a DB index for the 'expire' column in the session table to further improve the performance.
  *
+ * @property boolean $useCustomStorage Whether to use custom storage.
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CDbHttpSession.php 2412 2010-09-02 02:10:43Z qiang.xue $
+ * @version $Id: CDbHttpSession.php 3426 2011-10-25 00:01:09Z alexander.makarow $
  * @package system.web
  * @since 1.0
  */
@@ -80,9 +82,52 @@ class CDbHttpSession extends CHttpSession
 	}
 
 	/**
+	 * Updates the current session id with a newly generated one.
+	 * Please refer to {@link http://php.net/session_regenerate_id} for more details.
+	 * @param boolean $deleteOldSession Whether to delete the old associated session file or not.
+	 * @since 1.1.8
+	 */
+	public function regenerateID($deleteOldSession=false)
+	{
+		$oldID=session_id();
+
+		// if no session is started, there is nothing to regenerate
+		if(empty($oldID))
+			return;
+
+		parent::regenerateID(false);
+		$newID=session_id();
+		$db=$this->getDbConnection();
+
+		$sql="SELECT * FROM {$this->sessionTableName} WHERE id=:id";
+		$row=$db->createCommand($sql)->bindValue(':id',$oldID)->queryRow();
+		if($row!==false)
+		{
+			if($deleteOldSession)
+			{
+				$sql="UPDATE {$this->sessionTableName} SET id=:newID WHERE id=:oldID";
+				$db->createCommand($sql)->bindValue(':newID',$newID)->bindValue(':oldID',$oldID)->execute();
+			}
+			else
+			{
+				$row['id']=$newID;
+				$db->createCommand()->insert($this->sessionTableName, $row);
+			}
+		}
+		else
+		{
+			// shouldn't reach here normally
+			$db->createCommand()->insert($this->sessionTableName, array(
+				'id'=>$newID,
+				'expire'=>time()+$this->getTimeout(),
+			));
+		}
+	}
+
+	/**
 	 * Creates the session DB table.
-	 * @param CDbConnection the database connection
-	 * @param string the name of the table to be created
+	 * @param CDbConnection $db the database connection
+	 * @param string $tableName the name of the table to be created
 	 */
 	protected function createSessionTable($db,$tableName)
 	{
@@ -122,17 +167,16 @@ CREATE TABLE $tableName
 	/**
 	 * Session open handler.
 	 * Do not call this method directly.
-	 * @param string session save path
-	 * @param string session name
+	 * @param string $savePath session save path
+	 * @param string $sessionName session name
 	 * @return boolean whether session is opened successfully
 	 */
 	public function openSession($savePath,$sessionName)
 	{
-		$db=$this->getDbConnection();
-		$db->setActive(true);
-
 		if($this->autoCreateSessionTable)
 		{
+			$db=$this->getDbConnection();
+			$db->setActive(true);
 			$sql="DELETE FROM {$this->sessionTableName} WHERE expire<".time();
 			try
 			{
@@ -149,7 +193,7 @@ CREATE TABLE $tableName
 	/**
 	 * Session read handler.
 	 * Do not call this method directly.
-	 * @param string session ID
+	 * @param string $id session ID
 	 * @return string the session data
 	 */
 	public function readSession($id)
@@ -166,8 +210,8 @@ WHERE expire>$now AND id=:id
 	/**
 	 * Session write handler.
 	 * Do not call this method directly.
-	 * @param string session ID
-	 * @param string session data
+	 * @param string $id session ID
+	 * @param string $data session data
 	 * @return boolean whether session write is successful
 	 */
 	public function writeSession($id,$data)
@@ -198,7 +242,7 @@ WHERE expire>$now AND id=:id
 	/**
 	 * Session destroy handler.
 	 * Do not call this method directly.
-	 * @param string session ID
+	 * @param string $id session ID
 	 * @return boolean whether session is destroyed successfully
 	 */
 	public function destroySession($id)
@@ -211,15 +255,13 @@ WHERE expire>$now AND id=:id
 	/**
 	 * Session GC (garbage collection) handler.
 	 * Do not call this method directly.
-	 * @param integer the number of seconds after which data will be seen as 'garbage' and cleaned up.
+	 * @param integer $maxLifetime the number of seconds after which data will be seen as 'garbage' and cleaned up.
 	 * @return boolean whether session is GCed successfully
 	 */
 	public function gcSession($maxLifetime)
 	{
-		$db=$this->getDbConnection();
-		$db->setActive(true);
 		$sql="DELETE FROM {$this->sessionTableName} WHERE expire<".time();
-		$db->createCommand($sql)->execute();
+		$this->getDbConnection()->createCommand($sql)->execute();
 		return true;
 	}
 }

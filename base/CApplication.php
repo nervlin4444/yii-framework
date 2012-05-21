@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -45,8 +45,34 @@
  * Starting from lifecycle 3, if a PHP error or an uncaught exception occurs,
  * the application will switch to its error handling logic and jump to step 6 afterwards.
  *
+ * @property string $id The unique identifier for the application.
+ * @property string $basePath The root directory of the application. Defaults to 'protected'.
+ * @property string $runtimePath The directory that stores runtime files. Defaults to 'protected/runtime'.
+ * @property string $extensionPath The directory that contains all extensions. Defaults to the 'extensions' directory under 'protected'.
+ * @property string $language The language that the user is using and the application should be targeted to.
+ * Defaults to the {@link sourceLanguage source language}.
+ * @property string $timeZone The time zone used by this application.
+ * @property CLocale $locale The locale instance.
+ * @property string $localeDataPath The directory that contains the locale data. It defaults to 'framework/i18n/data'.
+ * @property CNumberFormatter $numberFormatter The locale-dependent number formatter.
+ * The current {@link getLocale application locale} will be used.
+ * @property CDateFormatter $dateFormatter The locale-dependent date formatter.
+ * The current {@link getLocale application locale} will be used.
+ * @property CDbConnection $db The database connection.
+ * @property CErrorHandler $errorHandler The error handler application component.
+ * @property CSecurityManager $securityManager The security manager application component.
+ * @property CStatePersister $statePersister The state persister application component.
+ * @property CCache $cache The cache application component. Null if the component is not enabled.
+ * @property CPhpMessageSource $coreMessages The core message translations.
+ * @property CMessageSource $messages The application message translations.
+ * @property CHttpRequest $request The request component.
+ * @property CUrlManager $urlManager The URL manager component.
+ * @property CController $controller The currently active controller. Null is returned in this base class.
+ * @property string $baseUrl The relative URL for the application.
+ * @property string $homeUrl The homepage URL.
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CApplication.php 1789 2010-02-02 18:38:56Z qiang.xue $
+ * @version $Id: CApplication.php 3515 2011-12-28 12:29:24Z mdomba $
  * @package system.base
  * @since 1.0
  */
@@ -74,6 +100,7 @@ abstract class CApplication extends CModule
 	private $_stateChanged;
 	private $_ended=false;
 	private $_language;
+	private $_homeUrl;
 
 	/**
 	 * Processes the request.
@@ -84,7 +111,7 @@ abstract class CApplication extends CModule
 
 	/**
 	 * Constructor.
-	 * @param mixed application configuration.
+	 * @param mixed $config application configuration.
 	 * If a string, it is treated as the path of the file that contains the configuration;
 	 * If an array, it is the actual configuration information.
 	 * Please make sure you specify the {@link getBasePath basePath} property in the configuration,
@@ -141,18 +168,21 @@ abstract class CApplication extends CModule
 	 * Terminates the application.
 	 * This method replaces PHP's exit() function by calling
 	 * {@link onEndRequest} before exiting.
-	 * @param integer exit status (value 0 means normal exit while other values mean abnormal exit).
+	 * @param integer $status exit status (value 0 means normal exit while other values mean abnormal exit).
+	 * @param boolean $exit whether to exit the current request. This parameter has been available since version 1.1.5.
+	 * It defaults to true, meaning the PHP's exit() function will be called at the end of this method.
 	 */
-	public function end($status=0)
+	public function end($status=0, $exit=true)
 	{
 		if($this->hasEventHandler('onEndRequest'))
 			$this->onEndRequest(new CEvent($this));
-		exit($status);
+		if($exit)
+			exit($status);
 	}
 
 	/**
 	 * Raised right BEFORE the application processes the request.
-	 * @param CEvent the event parameter
+	 * @param CEvent $event the event parameter
 	 */
 	public function onBeginRequest($event)
 	{
@@ -161,7 +191,7 @@ abstract class CApplication extends CModule
 
 	/**
 	 * Raised right AFTER the application processes the request.
-	 * @param CEvent the event parameter
+	 * @param CEvent $event the event parameter
 	 */
 	public function onEndRequest($event)
 	{
@@ -173,7 +203,8 @@ abstract class CApplication extends CModule
 	}
 
 	/**
-	 * @return string a unique identifier for the application.
+	 * Returns the unique identifier for the application.
+	 * @return string the unique identifier for the application.
 	 */
 	public function getId()
 	{
@@ -184,7 +215,8 @@ abstract class CApplication extends CModule
 	}
 
 	/**
-	 * @param string a unique identifier for the application.
+	 * Sets the unique identifier for the application.
+	 * @param string $id the unique identifier for the application.
 	 */
 	public function setId($id)
 	{
@@ -192,6 +224,7 @@ abstract class CApplication extends CModule
 	}
 
 	/**
+	 * Returns the root path of the application.
 	 * @return string the root directory of the application. Defaults to 'protected'.
 	 */
 	public function getBasePath()
@@ -202,7 +235,7 @@ abstract class CApplication extends CModule
 	/**
 	 * Sets the root directory of the application.
 	 * This method can only be invoked at the begin of the constructor.
-	 * @param string the root directory of the application.
+	 * @param string $path the root directory of the application.
 	 * @throws CException if the directory does not exist.
 	 */
 	public function setBasePath($path)
@@ -213,6 +246,7 @@ abstract class CApplication extends CModule
 	}
 
 	/**
+	 * Returns the directory that stores runtime files.
 	 * @return string the directory that stores runtime files. Defaults to 'protected/runtime'.
 	 */
 	public function getRuntimePath()
@@ -227,7 +261,8 @@ abstract class CApplication extends CModule
 	}
 
 	/**
-	 * @param string the directory that stores runtime files.
+	 * Sets the directory that stores runtime files.
+	 * @param string $path the directory that stores runtime files.
 	 * @throws CException if the directory does not exist or is not writable
 	 */
 	public function setRuntimePath($path)
@@ -248,7 +283,8 @@ abstract class CApplication extends CModule
 	}
 
 	/**
-	 * @param string the directory that contains all third-party extensions.
+	 * Sets the root directory that holds all third-party extensions.
+	 * @param string $path the directory that contains all third-party extensions.
 	 */
 	public function setExtensionPath($path)
 	{
@@ -259,6 +295,7 @@ abstract class CApplication extends CModule
 	}
 
 	/**
+	 * Returns the language that the user is using and the application should be targeted to.
 	 * @return string the language that the user is using and the application should be targeted to.
 	 * Defaults to the {@link sourceLanguage source language}.
 	 */
@@ -275,7 +312,7 @@ abstract class CApplication extends CModule
 	 *
 	 * Unless your application needs to support multiple languages, you should always
 	 * set this language to null to maximize the application's performance.
-	 * @param string the user language (e.g. 'en_US', 'zh_CN').
+	 * @param string $language the user language (e.g. 'en_US', 'zh_CN').
 	 * If it is null, the {@link sourceLanguage} will be used.
 	 */
 	public function setLanguage($language)
@@ -288,7 +325,6 @@ abstract class CApplication extends CModule
 	 * This is a simple wrapper of PHP function date_default_timezone_get().
 	 * @return string the time zone used by this application.
 	 * @see http://php.net/manual/en/function.date-default-timezone-get.php
-	 * @since 1.0.9
 	 */
 	public function getTimeZone()
 	{
@@ -298,9 +334,8 @@ abstract class CApplication extends CModule
 	/**
 	 * Sets the time zone used by this application.
 	 * This is a simple wrapper of PHP function date_default_timezone_set().
-	 * @param string the time zone used by this application.
+	 * @param string $value the time zone used by this application.
 	 * @see http://php.net/manual/en/function.date-default-timezone-set.php
-	 * @since 1.0.9
 	 */
 	public function setTimeZone($value)
 	{
@@ -320,9 +355,9 @@ abstract class CApplication extends CModule
 	 * For consistency, it is recommended that the locale ID is given
 	 * in lower case and in the format of LanguageID_RegionID (e.g. "en_us").
 	 *
-	 * @param string the original file
-	 * @param string the language that the original file is in. If null, the application {@link sourceLanguage source language} is used.
-	 * @param string the desired language that the file should be localized to. If null, the {@link getLanguage application language} will be used.
+	 * @param string $srcFile the original file
+	 * @param string $srcLanguage the language that the original file is in. If null, the application {@link sourceLanguage source language} is used.
+	 * @param string $language the desired language that the file should be localized to. If null, the {@link getLanguage application language} will be used.
 	 * @return string the matching localized file. The original file is returned if no localized version is found
 	 * or if source language is the same as the desired language.
 	 */
@@ -339,7 +374,8 @@ abstract class CApplication extends CModule
 	}
 
 	/**
-	 * @param string locale ID (e.g. en_US). If null, the {@link getLanguage application language ID} will be used.
+	 * Returns the locale instance.
+	 * @param string $localeID the locale ID (e.g. en_US). If null, the {@link getLanguage application language ID} will be used.
 	 * @return CLocale the locale instance
 	 */
 	public function getLocale($localeID=null)
@@ -348,6 +384,7 @@ abstract class CApplication extends CModule
 	}
 
 	/**
+	 * Returns the directory that contains the locale data.
 	 * @return string the directory that contains the locale data. It defaults to 'framework/i18n/data'.
 	 * @since 1.1.0
 	 */
@@ -357,7 +394,8 @@ abstract class CApplication extends CModule
 	}
 
 	/**
-	 * @param string the directory that contains the locale data.
+	 * Sets the directory that contains the locale data.
+	 * @param string $value the directory that contains the locale data.
 	 * @since 1.1.0
 	 */
 	public function setLocaleDataPath($value)
@@ -375,6 +413,7 @@ abstract class CApplication extends CModule
 	}
 
 	/**
+	 * Returns the locale-dependent date formatter.
 	 * @return CDateFormatter the locale-dependent date formatter.
 	 * The current {@link getLocale application locale} will be used.
 	 */
@@ -384,6 +423,7 @@ abstract class CApplication extends CModule
 	}
 
 	/**
+	 * Returns the database connection component.
 	 * @return CDbConnection the database connection
 	 */
 	public function getDb()
@@ -392,6 +432,7 @@ abstract class CApplication extends CModule
 	}
 
 	/**
+	 * Returns the error handler component.
 	 * @return CErrorHandler the error handler application component.
 	 */
 	public function getErrorHandler()
@@ -400,6 +441,7 @@ abstract class CApplication extends CModule
 	}
 
 	/**
+	 * Returns the security manager component.
 	 * @return CSecurityManager the security manager application component.
 	 */
 	public function getSecurityManager()
@@ -408,6 +450,7 @@ abstract class CApplication extends CModule
 	}
 
 	/**
+	 * Returns the state persister component.
 	 * @return CStatePersister the state persister application component.
 	 */
 	public function getStatePersister()
@@ -416,6 +459,7 @@ abstract class CApplication extends CModule
 	}
 
 	/**
+	 * Returns the cache component.
 	 * @return CCache the cache application component. Null if the component is not enabled.
 	 */
 	public function getCache()
@@ -424,6 +468,7 @@ abstract class CApplication extends CModule
 	}
 
 	/**
+	 * Returns the core message translations component.
 	 * @return CPhpMessageSource the core message translations
 	 */
 	public function getCoreMessages()
@@ -432,6 +477,7 @@ abstract class CApplication extends CModule
 	}
 
 	/**
+	 * Returns the application message translations component.
 	 * @return CMessageSource the application message translations
 	 */
 	public function getMessages()
@@ -440,6 +486,7 @@ abstract class CApplication extends CModule
 	}
 
 	/**
+	 * Returns the request component.
 	 * @return CHttpRequest the request component
 	 */
 	public function getRequest()
@@ -448,6 +495,7 @@ abstract class CApplication extends CModule
 	}
 
 	/**
+	 * Returns the URL manager component.
 	 * @return CUrlManager the URL manager component
 	 */
 	public function getUrlManager()
@@ -456,11 +504,85 @@ abstract class CApplication extends CModule
 	}
 
 	/**
+	 * @return CController the currently active controller. Null is returned in this base class.
+	 * @since 1.1.8
+	 */
+	public function getController()
+	{
+		return null;
+	}
+
+	/**
+	 * Creates a relative URL based on the given controller and action information.
+	 * @param string $route the URL route. This should be in the format of 'ControllerID/ActionID'.
+	 * @param array $params additional GET parameters (name=>value). Both the name and value will be URL-encoded.
+	 * @param string $ampersand the token separating name-value pairs in the URL.
+	 * @return string the constructed URL
+	 */
+	public function createUrl($route,$params=array(),$ampersand='&')
+	{
+		return $this->getUrlManager()->createUrl($route,$params,$ampersand);
+	}
+
+	/**
+	 * Creates an absolute URL based on the given controller and action information.
+	 * @param string $route the URL route. This should be in the format of 'ControllerID/ActionID'.
+	 * @param array $params additional GET parameters (name=>value). Both the name and value will be URL-encoded.
+	 * @param string $schema schema to use (e.g. http, https). If empty, the schema used for the current request will be used.
+	 * @param string $ampersand the token separating name-value pairs in the URL.
+	 * @return string the constructed URL
+	 */
+	public function createAbsoluteUrl($route,$params=array(),$schema='',$ampersand='&')
+	{
+		$url=$this->createUrl($route,$params,$ampersand);
+		if(strpos($url,'http')===0)
+			return $url;
+		else
+			return $this->getRequest()->getHostInfo($schema).$url;
+	}
+
+	/**
+	 * Returns the relative URL for the application.
+	 * This is a shortcut method to {@link CHttpRequest::getBaseUrl()}.
+	 * @param boolean $absolute whether to return an absolute URL. Defaults to false, meaning returning a relative one.
+	 * @return string the relative URL for the application
+	 * @see CHttpRequest::getBaseUrl()
+	 */
+	public function getBaseUrl($absolute=false)
+	{
+		return $this->getRequest()->getBaseUrl($absolute);
+	}
+
+	/**
+	 * @return string the homepage URL
+	 */
+	public function getHomeUrl()
+	{
+		if($this->_homeUrl===null)
+		{
+			if($this->getUrlManager()->showScriptName)
+				return $this->getRequest()->getScriptUrl();
+			else
+				return $this->getRequest()->getBaseUrl().'/';
+		}
+		else
+			return $this->_homeUrl;
+	}
+
+	/**
+	 * @param string $value the homepage URL
+	 */
+	public function setHomeUrl($value)
+	{
+		$this->_homeUrl=$value;
+	}
+
+	/**
 	 * Returns a global value.
 	 *
 	 * A global value is one that is persistent across users sessions and requests.
-	 * @param string the name of the value to be returned
-	 * @param mixed the default value. If the named global value is not found, this will be returned instead.
+	 * @param string $key the name of the value to be returned
+	 * @param mixed $defaultValue the default value. If the named global value is not found, this will be returned instead.
 	 * @return mixed the named global value
 	 * @see setGlobalState
 	 */
@@ -479,37 +601,44 @@ abstract class CApplication extends CModule
 	 *
 	 * A global value is one that is persistent across users sessions and requests.
 	 * Make sure that the value is serializable and unserializable.
-	 * @param string the name of the value to be saved
-	 * @param mixed the global value to be saved. It must be serializable.
-	 * @param mixed the default value. If the named global value is the same as this value, it will be cleared from the current storage.
+	 * @param string $key the name of the value to be saved
+	 * @param mixed $value the global value to be saved. It must be serializable.
+	 * @param mixed $defaultValue the default value. If the named global value is the same as this value, it will be cleared from the current storage.
 	 * @see getGlobalState
 	 */
 	public function setGlobalState($key,$value,$defaultValue=null)
 	{
 		if($this->_globalState===null)
 			$this->loadGlobalState();
-		$this->_stateChanged=true;
+
+		$changed=$this->_stateChanged;
 		if($value===$defaultValue)
-			unset($this->_globalState[$key]);
-		else
+		{
+			if(isset($this->_globalState[$key]))
+			{
+				unset($this->_globalState[$key]);
+				$this->_stateChanged=true;
+			}
+		}
+		else if(!isset($this->_globalState[$key]) || $this->_globalState[$key]!==$value)
+		{
 			$this->_globalState[$key]=$value;
+			$this->_stateChanged=true;
+		}
+
+		if($this->_stateChanged!==$changed)
+			$this->attachEventHandler('onEndRequest',array($this,'saveGlobalState'));
 	}
 
 	/**
 	 * Clears a global value.
 	 *
 	 * The value cleared will no longer be available in this request and the following requests.
-	 * @param string the name of the value to be cleared
+	 * @param string $key the name of the value to be cleared
 	 */
 	public function clearGlobalState($key)
 	{
-		if($this->_globalState===null)
-			$this->loadGlobalState();
-		if(isset($this->_globalState[$key]))
-		{
-			$this->_stateChanged=true;
-			unset($this->_globalState[$key]);
-		}
+		$this->setGlobalState($key,true,true);
 	}
 
 	/**
@@ -517,13 +646,13 @@ abstract class CApplication extends CModule
 	 * @see getStatePersister
 	 * @throws CException if the state persister is not available
 	 */
-	protected function loadGlobalState()
+	public function loadGlobalState()
 	{
 		$persister=$this->getStatePersister();
 		if(($this->_globalState=$persister->load())===null)
 			$this->_globalState=array();
 		$this->_stateChanged=false;
-		$this->attachEventHandler('onEndRequest',array($this,'saveGlobalState'));
+		$this->detachEventHandler('onEndRequest',array($this,'saveGlobalState'));
 	}
 
 	/**
@@ -531,13 +660,13 @@ abstract class CApplication extends CModule
 	 * @see getStatePersister
 	 * @throws CException if the state persister is not available
 	 */
-	protected function saveGlobalState()
+	public function saveGlobalState()
 	{
 		if($this->_stateChanged)
 		{
-			$persister=$this->getStatePersister();
 			$this->_stateChanged=false;
-			$persister->save($this->_globalState);
+			$this->detachEventHandler('onEndRequest',array($this,'saveGlobalState'));
+			$this->getStatePersister()->save($this->_globalState);
 		}
 	}
 
@@ -553,13 +682,10 @@ abstract class CApplication extends CModule
 	 *
 	 * The application will be terminated by this method.
 	 *
-	 * @param Exception exception that is not caught
+	 * @param Exception $exception exception that is not caught
 	 */
 	public function handleException($exception)
 	{
-//kevin for xdebug to show error
-if(class_exists('Linz',false))if(Linz::$DEBUG===true){return;}
-
 		// disable error capturing to avoid recursive errors
 		restore_error_handler();
 		restore_exception_handler();
@@ -570,7 +696,10 @@ if(class_exists('Linz',false))if(Linz::$DEBUG===true){return;}
 		// php <5.2 doesn't support string conversion auto-magically
 		$message=$exception->__toString();
 		if(isset($_SERVER['REQUEST_URI']))
-			$message.=' REQUEST_URI='.$_SERVER['REQUEST_URI'];
+			$message.="\nREQUEST_URI=".$_SERVER['REQUEST_URI'];
+		if(isset($_SERVER['HTTP_REFERER']))
+			$message.="\nHTTP_REFERER=".$_SERVER['HTTP_REFERER'];
+		$message.="\n---";
 		Yii::log($message,CLogger::LEVEL_ERROR,$category);
 
 		try
@@ -590,7 +719,23 @@ if(class_exists('Linz',false))if(Linz::$DEBUG===true){return;}
 		{
 			$this->displayException($e);
 		}
-		$this->end(1);
+
+		try
+		{
+			$this->end(1);
+		}
+		catch(Exception $e)
+		{
+			// use the most primitive way to log error
+			$msg = get_class($e).': '.$e->getMessage().' ('.$e->getFile().':'.$e->getLine().")\n";
+			$msg .= $e->getTraceAsString()."\n";
+			$msg .= "Previous exception:\n";
+			$msg .= get_class($exception).': '.$exception->getMessage().' ('.$exception->getFile().':'.$exception->getLine().")\n";
+			$msg .= $exception->getTraceAsString()."\n";
+			$msg .= '$_SERVER='.var_export($_SERVER,true);
+			error_log($msg);
+			exit(1);
+		}
 	}
 
 	/**
@@ -605,15 +750,13 @@ if(class_exists('Linz',false))if(Linz::$DEBUG===true){return;}
 	 *
 	 * The application will be terminated by this method.
 	 *
-	 * @param integer the level of the error raised
-	 * @param string the error message
-	 * @param string the filename that the error was raised in
-	 * @param integer the line number the error was raised at
+	 * @param integer $code the level of the error raised
+	 * @param string $message the error message
+	 * @param string $file the filename that the error was raised in
+	 * @param integer $line the line number the error was raised at
 	 */
 	public function handleError($code,$message,$file,$line)
 	{
-//kevin for xdebug to show error
-if(class_exists('Linz',false))if(Linz::$DEBUG===true){return;}
 		if($code & error_reporting())
 		{
 			// disable error capturing to avoid recursive errors
@@ -660,7 +803,22 @@ if(class_exists('Linz',false))if(Linz::$DEBUG===true){return;}
 			{
 				$this->displayException($e);
 			}
-			$this->end(1);
+
+			try
+			{
+				$this->end(1);
+			}
+			catch(Exception $e)
+			{
+				// use the most primitive way to log error
+				$msg = get_class($e).': '.$e->getMessage().' ('.$e->getFile().':'.$e->getLine().")\n";
+				$msg .= $e->getTraceAsString()."\n";
+				$msg .= "Previous error:\n";
+				$msg .= $log."\n";
+				$msg .= '$_SERVER='.var_export($_SERVER,true);
+				error_log($msg);
+				exit(1);
+			}
 		}
 	}
 
@@ -672,7 +830,7 @@ if(class_exists('Linz',false))if(Linz::$DEBUG===true){return;}
 	 * handling is needed. Otherwise, the {@link getErrorHandler errorHandler}
 	 * application component will continue processing the error.
 	 *
-	 * @param CExceptionEvent event parameter
+	 * @param CExceptionEvent $event event parameter
 	 */
 	public function onException($event)
 	{
@@ -687,7 +845,7 @@ if(class_exists('Linz',false))if(Linz::$DEBUG===true){return;}
 	 * handling is needed. Otherwise, the {@link getErrorHandler errorHandler}
 	 * application component will continue processing the error.
 	 *
-	 * @param CErrorEvent event parameter
+	 * @param CErrorEvent $event event parameter
 	 */
 	public function onError($event)
 	{
@@ -698,19 +856,37 @@ if(class_exists('Linz',false))if(Linz::$DEBUG===true){return;}
 	 * Displays the captured PHP error.
 	 * This method displays the error in HTML when there is
 	 * no active error handler.
-	 * @param integer error code
-	 * @param string error message
-	 * @param string error file
-	 * @param string error line
+	 * @param integer $code error code
+	 * @param string $message error message
+	 * @param string $file error file
+	 * @param string $line error line
 	 */
 	public function displayError($code,$message,$file,$line)
-	{if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.".".__METHOD__,$message);
+	{
 		if(YII_DEBUG)
 		{
 			echo "<h1>PHP Error [$code]</h1>\n";
 			echo "<p>$message ($file:$line)</p>\n";
 			echo '<pre>';
-			debug_print_backtrace();
+
+			$trace=debug_backtrace();
+			// skip the first 3 stacks as they do not tell the error position
+			if(count($trace)>3)
+				$trace=array_slice($trace,3);
+			foreach($trace as $i=>$t)
+			{
+				if(!isset($t['file']))
+					$t['file']='unknown';
+				if(!isset($t['line']))
+					$t['line']=0;
+				if(!isset($t['function']))
+					$t['function']='unknown';
+				echo "#$i {$t['file']}({$t['line']}): ";
+				if(isset($t['object']) && is_object($t['object']))
+					echo get_class($t['object']).'->';
+				echo "{$t['function']}()\n";
+			}
+
 			echo '</pre>';
 		}
 		else
@@ -724,10 +900,10 @@ if(class_exists('Linz',false))if(Linz::$DEBUG===true){return;}
 	 * Displays the uncaught PHP exception.
 	 * This method displays the exception in HTML when there is
 	 * no active error handler.
-	 * @param Exception the uncaught exception
+	 * @param Exception $exception the uncaught exception
 	 */
 	public function displayException($exception)
-	{if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.".".__METHOD__,$message);
+	{
 		if(YII_DEBUG)
 		{
 			echo '<h1>'.get_class($exception)."</h1>\n";
@@ -746,10 +922,6 @@ if(class_exists('Linz',false))if(Linz::$DEBUG===true){return;}
 	 */
 	protected function initSystemHandlers()
 	{
-//kevin for xdebug to show error
-if(class_exists("Linz",false))
-if(Linz::$DEBUG===true){return;}
-		
 		if(YII_ENABLE_EXCEPTION_HANDLER)
 			set_exception_handler(array($this,'handleException'));
 		if(YII_ENABLE_ERROR_HANDLER)

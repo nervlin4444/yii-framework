@@ -1,9 +1,9 @@
-<script language="javascript" type="text/javascript">
+<script type="text/javascript">
 /*<![CDATA[*/
 if(typeof(console)=='object')
 {
-	console.group("Profiling Summary Report");
-	console.log(" count   total   average    min      max   ");
+	console.group("Rapport de profilage");
+	console.log(" nb      total   moyenne    min      max   ");
 <?php
 foreach($data as $index=>$entry)
 {

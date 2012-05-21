@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -72,8 +72,12 @@ Yii::import('zii.widgets.grid.CCheckBoxColumn');
  *
  * Please refer to {@link columns} for more details about how to configure this property.
  *
+ * @property boolean $hasFooter Whether the table should render a footer.
+ * This is true if any of the {@link columns} has a true {@link CGridColumn::hasFooter} value.
+ * @property CFormatter $formatter The formatter instance. Defaults to the 'format' application component.
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CGridView.php 2326 2010-08-20 17:02:07Z qiang.xue $
+ * @version $Id: CGridView.php 3551 2012-02-02 12:45:25Z mdomba $
  * @package zii.widgets.grid
  * @since 1.1
  */
@@ -128,18 +132,53 @@ class CGridView extends CBaseListView
 	 */
 	public $ajaxUpdate;
 	/**
+	 * @var string the jQuery selector of the HTML elements that may trigger AJAX updates when they are clicked.
+	 * If not set, the pagination links and the sorting links will trigger AJAX updates.
+	 * @since 1.1.7
+	 */
+	public $updateSelector;
+	/**
+	 * @var string a javascript function that will be invoked if an AJAX update error occurs.
+	 *
+	 * The function signature is <code>function(xhr, textStatus, errorThrown, errorMessage)</code>
+	 * <ul>
+	 * <li><code>xhr</code> is the XMLHttpRequest object.</li>
+	 * <li><code>textStatus</code> is a string describing the type of error that occurred.
+	 * Possible values (besides null) are "timeout", "error", "notmodified" and "parsererror"</li>
+	 * <li><code>errorThrown</code> is an optional exception object, if one occurred.</li>
+	 * <li><code>errorMessage</code> is the CGridView default error message derived from xhr and errorThrown.
+	 * Usefull if you just want to display this error differently. CGridView by default displays this error with an javascript.alert()</li>
+	 * </ul>
+	 * Note: This handler is not called for JSONP requests, because they do not use an XMLHttpRequest.
+	 *
+	 * Example (add in a call to CGridView):
+	 * <pre>
+	 *  ...
+	 *  'ajaxUpdateError'=>'function(xhr,ts,et,err){ $("#myerrordiv").text(err); }',
+	 *  ...
+	 * </pre>
+	 */
+	public $ajaxUpdateError;
+	/**
 	 * @var string the name of the GET variable that indicates the request is an AJAX request triggered
 	 * by this widget. Defaults to 'ajax'. This is effective only when {@link ajaxUpdate} is not false.
 	 */
 	public $ajaxVar='ajax';
 	/**
+	 * @var mixed the URL for the AJAX requests should be sent to. {@link CHtml::normalizeUrl()} will be
+	 * called on this property. If not set, the current page URL will be used for AJAX requests.
+	 * @since 1.1.8
+	 */
+	public $ajaxUrl;
+	/**
 	 * @var string a javascript function that will be invoked before an AJAX update occurs.
-	 * The function signature is <code>function(id)</code> where 'id' refers to the ID of the grid view.
+	 * The function signature is <code>function(id,options)</code> where 'id' refers to the ID of the grid view,
+	 * 'options' the AJAX request options  (see jQuery.ajax api manual).
 	 */
 	public $beforeAjaxUpdate;
 	/**
 	 * @var string a javascript function that will be invoked after a successful AJAX response is received.
-	 * The function signature is <code>function(id, data)</code> where 'id' refers to the ID of the grid view
+	 * The function signature is <code>function(id, data)</code> where 'id' refers to the ID of the grid view,
 	 * 'data' the received ajax response data.
 	 */
 	public $afterAjaxUpdate;
@@ -159,7 +198,7 @@ class CGridView extends CBaseListView
 	 */
 	public $selectableRows=1;
 	/**
-	 * @var string the base script URL for all grid view resources (e.g. javascript, CSS file, images).
+	 * @var string the base script URL for all grid view resources (eg javascript, CSS file, images).
 	 * Defaults to null, meaning using the integrated grid view resources (which are published as assets).
 	 */
 	public $baseScriptUrl;
@@ -173,6 +212,13 @@ class CGridView extends CBaseListView
 	 * when rendering. Defaults to an HTML blank.
 	 */
 	public $nullDisplay='&nbsp;';
+	/**
+	 * @var string the text to be displayed in an empty grid cell. This property will NOT be HTML-encoded when rendering. Defaults to an HTML blank.
+	 * This differs from {@link nullDisplay} in that {@link nullDisplay} is only used by {@link CDataColumn} to render
+	 * null data values.
+	 * @since 1.1.7
+	 */
+	public $blankDisplay='&nbsp;';
 	/**
 	 * @var string the CSS class name that will be assigned to the widget container element
 	 * when the widget is updating its content via AJAX. Defaults to 'grid-view-loading'.
@@ -200,6 +246,9 @@ class CGridView extends CBaseListView
 	 * @var CModel the model instance that keeps the user-entered filter data. When this property is set,
 	 * the grid view will enable column-based filtering. Each data column by default will display a text field
 	 * at the top that users can fill in to filter the data.
+	 * Note that in order to show an input field for filtering, a column must have its {@link CDataColumn::name}
+	 * property set or have {@link CDataColumn::filter} as the HTML code for the input field.
+	 * When this property is not set (null) the filtering is disabled.
 	 * @since 1.1.1
 	 */
 	public $filter;
@@ -253,7 +302,6 @@ class CGridView extends CBaseListView
 			}
 		}
 		$id=$this->getId();
-
 		foreach($this->columns as $i=>$column)
 		{
 			if(is_string($column))
@@ -280,7 +328,7 @@ class CGridView extends CBaseListView
 
 	/**
 	 * Creates a {@link CDataColumn} based on a shortcut column specification string.
-	 * @param string the column specification string
+	 * @param string $text the column specification string
 	 * @return CDataColumn the column instance
 	 */
 	protected function createDataColumn($text)
@@ -289,7 +337,7 @@ class CGridView extends CBaseListView
 			throw new CException(Yii::t('zii','The column must be specified in the format of "Name:Type:Label", where "Type" and "Label" are optional.'));
 		$column=new CDataColumn($this);
 		$column->name=$matches[1];
-		if(isset($matches[3]))
+		if(isset($matches[3]) && $matches[3]!=='')
 			$column->type=$matches[3];
 		if(isset($matches[5]))
 			$column->header=$matches[5];
@@ -316,10 +364,18 @@ class CGridView extends CBaseListView
 			'tableClass'=>$this->itemsCssClass,
 			'selectableRows'=>$this->selectableRows,
 		);
+		if($this->ajaxUrl!==null)
+			$options['url']=CHtml::normalizeUrl($this->ajaxUrl);
+		if($this->updateSelector!==null)
+			$options['updateSelector']=$this->updateSelector;
+		if($this->enablePagination)
+			$options['pageVar']=$this->dataProvider->getPagination()->pageVar;
 		if($this->beforeAjaxUpdate!==null)
 			$options['beforeAjaxUpdate']=(strpos($this->beforeAjaxUpdate,'js:')!==0 ? 'js:' : '').$this->beforeAjaxUpdate;
 		if($this->afterAjaxUpdate!==null)
 			$options['afterAjaxUpdate']=(strpos($this->afterAjaxUpdate,'js:')!==0 ? 'js:' : '').$this->afterAjaxUpdate;
+		if($this->ajaxUpdateError!==null)
+			$options['ajaxUpdateError']=(strpos($this->ajaxUpdateError,'js:')!==0 ? 'js:' : '').$this->ajaxUpdateError;
 		if($this->selectionChanged!==null)
 			$options['selectionChanged']=(strpos($this->selectionChanged,'js:')!==0 ? 'js:' : '').$this->selectionChanged;
 
@@ -327,7 +383,7 @@ class CGridView extends CBaseListView
 		$cs=Yii::app()->getClientScript();
 		$cs->registerCoreScript('jquery');
 		$cs->registerCoreScript('bbq');
-		$cs->registerScriptFile($this->baseScriptUrl.'/jquery.yiigridview.js');
+		$cs->registerScriptFile($this->baseScriptUrl.'/jquery.yiigridview.js',CClientScript::POS_END);
 		$cs->registerScript(__CLASS__.'#'.$id,"jQuery('#$id').yiiGridView($options);");
 	}
 
@@ -340,8 +396,11 @@ class CGridView extends CBaseListView
 		{
 			echo "<table class=\"{$this->itemsCssClass}\">\n";
 			$this->renderTableHeader();
-			$this->renderTableFooter();
+			ob_start();
 			$this->renderTableBody();
+			$body=ob_get_clean();
+			$this->renderTableFooter();
+			echo $body; // TFOOT must appear before TBODY according to the standard.
 			echo "</table>";
 		}
 		else
@@ -441,7 +500,7 @@ class CGridView extends CBaseListView
 
 	/**
 	 * Renders a table body row.
-	 * @param integer the row number (zero-based).
+	 * @param integer $row the row number (zero-based).
 	 */
 	public function renderTableRow($row)
 	{
@@ -482,7 +541,7 @@ class CGridView extends CBaseListView
 	}
 
 	/**
-	 * @param CFormatter the formatter instance
+	 * @param CFormatter $value the formatter instance
 	 */
 	public function setFormatter($value)
 	{

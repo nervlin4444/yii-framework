@@ -4,16 +4,16 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
- * @version $Id: WebAppCommand.php 2202 2010-06-16 19:52:29Z qiang.xue $
+ * @version $Id: WebAppCommand.php 3477 2011-12-06 22:33:37Z alexander.makarow $
  */
 
 /**
  * WebAppCommand creates an Yii Web application at the specified location.
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: WebAppCommand.php 2202 2010-06-16 19:52:29Z qiang.xue $
+ * @version $Id: WebAppCommand.php 3477 2011-12-06 22:33:37Z alexander.makarow $
  * @package system.cli.commands
  * @since 1.0
  */
@@ -56,12 +56,11 @@ EOD;
 			$this->_rootPath=$path=$dir;
 		else
 			$this->_rootPath=$path=$dir.DIRECTORY_SEPARATOR.basename($path);
-		echo "Create a Web application under '$path'? [Yes|No] ";
-		if(!strncasecmp(trim(fgets(STDIN)),'y',1))
+		if($this->confirm("Create a Web application under '$path'?"))
 		{
 			$sourceDir=realpath(dirname(__FILE__).'/../views/webapp');
 			if($sourceDir===false)
-				die('Unable to locate the source directory.');
+				die("\nUnable to locate the source directory.\n");
 			$list=$this->buildFileList($sourceDir,$path);
 			$list['index.php']['callback']=array($this,'generateIndex');
 			$list['index-test.php']['callback']=array($this,'generateIndex');

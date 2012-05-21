@@ -4,16 +4,18 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
- * @version $Id: HelpCommand.php 1678 2010-01-07 21:02:00Z qiang.xue $
+ * @version $Id: HelpCommand.php 3426 2011-10-25 00:01:09Z alexander.makarow $
  */
 
 /**
  * HelpCommand displays help information for commands under yiic shell.
  *
+ * @property string $help The command description.
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: HelpCommand.php 1678 2010-01-07 21:02:00Z qiang.xue $
+ * @version $Id: HelpCommand.php 3426 2011-10-25 00:01:09Z alexander.makarow $
  * @package system.cli.commands.shell
  * @since 1.0
  */

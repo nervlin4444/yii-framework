@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -20,7 +20,7 @@
  * the attributes.
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CFormModel.php 1678 2010-01-07 21:02:00Z qiang.xue $
+ * @version $Id: CFormModel.php 3515 2011-12-28 12:29:24Z mdomba $
  * @package system.web
  * @since 1.0
  */
@@ -30,7 +30,7 @@ class CFormModel extends CModel
 
 	/**
 	 * Constructor.
-	 * @param string name of the scenario that this model is used in.
+	 * @param string $scenario name of the scenario that this model is used in.
 	 * See {@link CModel::scenario} on how scenario is used by models.
 	 * @see getScenario
 	 */
@@ -39,6 +39,7 @@ class CFormModel extends CModel
 		$this->setScenario($scenario);
 		$this->init();
 		$this->attachBehaviors($this->behaviors());
+		$this->afterConstruct();
 	}
 
 	/**
@@ -46,7 +47,6 @@ class CFormModel extends CModel
 	 * This method is invoked in the constructor right after {@link scenario} is set.
 	 * You may override this method to provide code that is needed to initialize the model (e.g. setting
 	 * initial property values.)
-	 * @since 1.0.8
 	 */
 	public function init()
 	{

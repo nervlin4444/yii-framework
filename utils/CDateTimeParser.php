@@ -6,7 +6,7 @@
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @author Tomasz Suchanek <tomasz[dot]suchanek[at]gmail[dot]com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -23,14 +23,15 @@
  * MM      | Month digit 01 to 12, zero leading
  * yy      | 2 year digit, e.g., 96, 05
  * yyyy    | 4 year digit, e.g., 2005
- * h       | Hour in 0 to 23, no padding (since version 1.0.5)
- * hh      | Hour in 00 to 23, zero leading (since version 1.0.5)
- * H       | Hour in 0 to 23, no padding (since version 1.0.9)
- * HH      | Hour in 00 to 23, zero leading (since version 1.0.9)
- * m       | Minutes in 0 to 59, no padding (since version 1.0.5)
- * mm      | Minutes in 00 to 59, zero leading (since version 1.0.5)
- * s	   | Seconds in 0 to 59, no padding (since version 1.0.5)
- * ss      | Seconds in 00 to 59, zero leading (since version 1.0.5)
+ * h       | Hour in 0 to 23, no padding
+ * hh      | Hour in 00 to 23, zero leading
+ * H       | Hour in 0 to 23, no padding
+ * HH      | Hour in 00 to 23, zero leading
+ * m       | Minutes in 0 to 59, no padding
+ * mm      | Minutes in 00 to 59, zero leading
+ * s       | Seconds in 0 to 59, no padding
+ * ss      | Seconds in 00 to 59, zero leading
+ * a       | AM or PM, case-insensitive (since version 1.1.5)
  * ----------------------------------------------------
  * </pre>
  * All other characters must appear in the date string at the corresponding positions.
@@ -44,7 +45,7 @@
  *
  * @author Wei Zhuo <weizhuo[at]gmail[dot]com>
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CDateTimeParser.php 2184 2010-06-14 20:39:12Z qiang.xue $
+ * @version $Id: CDateTimeParser.php 2928 2011-02-01 17:41:51Z alexander.makarow $
  * @package system.utils
  * @since 1.0
  */
@@ -52,11 +53,17 @@ class CDateTimeParser
 {
 	/**
 	 * Converts a date string to a timestamp.
-	 * @param string the date string to be parsed
-	 * @param string the pattern that the date string is following
+	 * @param string $value the date string to be parsed
+	 * @param string $pattern the pattern that the date string is following
+	 * @param array $defaults the default values for year, month, day, hour, minute and second.
+	 * The default values will be used in case when the pattern doesn't specify the
+	 * corresponding fields. For example, if the pattern is 'MM/dd/yyyy' and this
+	 * parameter is array('minute'=>0, 'second'=>0), then the actual minute and second
+	 * for the parsing result will take value 0, while the actual hour value will be
+	 * the current hour obtained by date('H'). This parameter has been available since version 1.1.5.
 	 * @return integer timestamp for the date string. False if parsing fails.
 	 */
-	public static function parse($value,$pattern='MM/dd/yyyy')
+	public static function parse($value,$pattern='MM/dd/yyyy',$defaults=array())
 	{
 		$tokens=self::tokenize($pattern);
 		$i=0;
@@ -151,6 +158,20 @@ class CDateTimeParser
 					$i+=2;
 					break;
 				}
+				case 'a':
+				{
+				    if(($ampm=self::parseAmPm($value,$i))===false)
+				        return false;
+				    if(isset($hour))
+				    {
+				    	if($hour==12 && $ampm==='am')
+				    		$hour=0;
+				    	else if($hour<12 && $ampm==='pm')
+				    		$hour+=12;
+				    }
+					$i+=2;
+					break;
+				}
 				default:
 				{
 					$tn=strlen($token);
@@ -165,15 +186,15 @@ class CDateTimeParser
 			return false;
 
 		if(!isset($year))
-			$year=date('Y');
+			$year=isset($defaults['year']) ? $defaults['year'] : date('Y');
 		if(!isset($month))
-			$month=date('n');
+			$month=isset($defaults['month']) ? $defaults['month'] : date('n');
 		if(!isset($day))
-			$day=date('j');
+			$day=isset($defaults['day']) ? $defaults['day'] : date('j');
 
 		if(strlen($year)===2)
 		{
-			if($year>70)
+			if($year>=70)
 				$year+=1900;
 			else
 				$year+=2000;
@@ -182,16 +203,19 @@ class CDateTimeParser
 		$month=(int)$month;
 		$day=(int)$day;
 
-		if(!isset($hour) && !isset($minute) && !isset($second))
+		if(
+			!isset($hour) && !isset($minute) && !isset($second)
+			&& !isset($defaults['hour']) && !isset($defaults['minute']) && !isset($defaults['second'])
+		)
 			$hour=$minute=$second=0;
 		else
 		{
 			if(!isset($hour))
-				$hour=date('H');
+				$hour=isset($defaults['hour']) ? $defaults['hour'] : date('H');
 			if(!isset($minute))
-				$minute=date('i');
+				$minute=isset($defaults['minute']) ? $defaults['minute'] : date('i');
 			if(!isset($second))
-				$second=date('s');
+				$second=isset($defaults['second']) ? $defaults['second'] : date('s');
 			$hour=(int)$hour;
 			$minute=(int)$minute;
 			$second=(int)$second;
@@ -203,6 +227,9 @@ class CDateTimeParser
 			return false;
 	}
 
+	/*
+	 * @param string $pattern the pattern that the date string is following
+	 */
 	private static function tokenize($pattern)
 	{
 		if(!($n=strlen($pattern)))
@@ -221,6 +248,12 @@ class CDateTimeParser
 		return $tokens;
 	}
 
+	/*
+	 * @param string $value the date string to be parsed
+	 * @param integer $offset starting offset
+	 * @param integer $minLength minimum length
+	 * @param integer $maxLength maximum length
+	 */
 	protected static function parseInteger($value,$offset,$minLength,$maxLength)
 	{
 		for($len=$maxLength;$len>=$minLength;--$len)
@@ -230,5 +263,15 @@ class CDateTimeParser
 				return $v;
 		}
 		return false;
+	}
+
+	/*
+	 * @param string $value the date string to be parsed
+	 * @param integer $offset starting offset
+	 */
+	protected static function parseAmPm($value, $offset)
+	{
+		$v=strtolower(substr($value,$offset,2));
+		return $v==='am' || $v==='pm' ? $v : false;
 	}
 }

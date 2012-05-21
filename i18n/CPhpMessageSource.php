@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -29,7 +29,7 @@
  * </ul>
  * When {@link cachingDuration} is set as a positive number, message translations will be cached.
  *
- * Starting from version 1.0.10, messages for an extension class (e.g. a widget, a module) can be specially managed and used.
+ * Messages for an extension class (e.g. a widget, a module) can be specially managed and used.
  * In particular, if a message belongs to an extension whose class name is Xyz, then the message category
  * can be specified in the format of 'Xyz.categoryName'. And the corresponding message file
  * is assumed to be 'BasePath/messages/LanguageID/categoryName.php', where 'BasePath' refers to
@@ -37,7 +37,7 @@
  * the category name should be set as 'Xyz.categoryName'.
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CPhpMessageSource.php 1884 2010-03-11 14:58:33Z qiang.xue $
+ * @version $Id: CPhpMessageSource.php 3515 2011-12-28 12:29:24Z mdomba $
  * @package system.i18n
  * @since 1.0
  */
@@ -54,7 +54,6 @@ class CPhpMessageSource extends CMessageSource
 	 * @var string the ID of the cache application component that is used to cache the messages.
 	 * Defaults to 'cache' which refers to the primary cache application component.
 	 * Set this property to false if you want to disable caching the messages.
-	 * @since 1.0.10
 	 */
 	public $cacheID='cache';
 	/**
@@ -83,10 +82,9 @@ class CPhpMessageSource extends CMessageSource
 	 * In this case, the message file will be assumed to be located within the 'messages' subdirectory of
 	 * the directory containing the module class file.
 	 * Otherwise, the message file is assumed to be under the {@link basePath}.
-	 * @param string category name
-	 * @param string language ID
+	 * @param string $category category name
+	 * @param string $language language ID
 	 * @return string the message file path
-	 * @since 1.0.10
 	 */
 	protected function getMessageFile($category,$language)
 	{
@@ -107,8 +105,8 @@ class CPhpMessageSource extends CMessageSource
 
 	/**
 	 * Loads the message translation for the specified language and category.
-	 * @param string the message category
-	 * @param string the target language
+	 * @param string $category the message category
+	 * @param string $language the target language
 	 * @return array the loaded messages
 	 */
 	protected function loadMessages($category,$language)

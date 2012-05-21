@@ -4,38 +4,63 @@
  *
  * @author Ricardo Grana <rickgrana@yahoo.com.br>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
 /**
  * COciSchema is the class for retrieving metadata information from an Oracle database.
  *
+ * @property string $defaultSchema Default schema.
+ *
  * @author Ricardo Grana <rickgrana@yahoo.com.br>
- * @version $Id: COciSchema.php 2262 2010-07-14 21:47:16Z qiang.xue $
+ * @version $Id: COciSchema.php 3515 2011-12-28 12:29:24Z mdomba $
  * @package system.db.schema.oci
- * @since 1.0.5
  */
 class COciSchema extends CDbSchema
 {
 	private $_defaultSchema = '';
 
 	/**
-	 * Quotes a table name for use in a query.
-	 * @param string table name
-	 * @return string the properly quoted table name
+	 * @var array the abstract column types mapped to physical column types.
+	 * @since 1.1.6
 	 */
-	public function quoteTableName($name)
+    public $columnTypes=array(
+        'pk' => 'NUMBER(10) NOT NULL PRIMARY KEY',
+        'string' => 'VARCHAR2(255)',
+        'text' => 'CLOB',
+        'integer' => 'NUMBER(10)',
+        'float' => 'NUMBER',
+        'decimal' => 'NUMBER',
+        'datetime' => 'TIMESTAMP',
+        'timestamp' => 'TIMESTAMP',
+        'time' => 'TIMESTAMP',
+        'date' => 'DATE',
+        'binary' => 'BLOB',
+        'boolean' => 'NUMBER(1)',
+		'money' => 'NUMBER(19,4)',
+    );
+
+	/**
+	 * Quotes a table name for use in a query.
+	 * A simple table name does not schema prefix.
+	 * @param string $name table name
+	 * @return string the properly quoted table name
+	 * @since 1.1.6
+	 */
+	public function quoteSimpleTableName($name)
 	{
 		return '"'.$name.'"';
 	}
 
 	/**
 	 * Quotes a column name for use in a query.
-	 * @param string column name
+	 * A simple column name does not contain prefix.
+	 * @param string $name column name
 	 * @return string the properly quoted column name
+	 * @since 1.1.6
 	 */
-	public function quoteColumnName($name)
+	public function quoteSimpleColumnName($name)
 	{
 		return '"'.$name.'"';
 	}
@@ -51,7 +76,7 @@ class COciSchema extends CDbSchema
 	}
 
 	/**
-     * @param string default schema.
+     * @param string $schema default schema.
      */
     public function setDefaultSchema($schema)
     {
@@ -72,7 +97,7 @@ class COciSchema extends CDbSchema
     }
 
     /**
-     * @param string table name with optional schema name prefix, uses default schema name prefix is not provided.
+     * @param string $table table name with optional schema name prefix, uses default schema name prefix is not provided.
      * @return array tuple as ($schemaName,$tableName)
      */
     protected function getSchemaTableName($table)
@@ -85,10 +110,11 @@ class COciSchema extends CDbSchema
     }
 
 	/**
-	 * Creates a table instance representing the metadata for the named table.
+	 * Loads the metadata for the specified table.
+	 * @param string $name table name
 	 * @return CDbTableSchema driver dependent table metadata.
 	 */
-	protected function createTable($name)
+	protected function loadTable($name)
 	{
 		$table=new COciTableSchema;
 		$this->resolveTableNames($table,$name);
@@ -102,8 +128,8 @@ class COciSchema extends CDbSchema
 
 	/**
 	 * Generates various kinds of table names.
-	 * @param COciTableSchema the table instance
-	 * @param string the unquoted table name
+	 * @param COciTableSchema $table the table instance
+	 * @param string $name the unquoted table name
 	 */
 	protected function resolveTableNames($table,$name)
 	{
@@ -129,12 +155,13 @@ class COciSchema extends CDbSchema
 
 	/**
 	 * Collects the table column metadata.
-	 * @param COciTableSchema the table metadata
+	 * @param COciTableSchema $table the table metadata
 	 * @return boolean whether the table exists in the database
 	 */
 	protected function findColumns($table)
 	{
-		list($schemaName,$tableName) = $this->getSchemaTableName($table->name);
+		$schemaName=$table->schemaName;
+		$tableName=$table->name;
 
 		$sql=<<<EOD
 SELECT a.column_name, a.data_type ||
@@ -184,6 +211,7 @@ EOD;
 				else
 					$table->primaryKey[]=$c->name;
 				$table->sequenceName='';
+				$c->autoIncrement=true;
 			}
 		}
 		return true;
@@ -191,7 +219,7 @@ EOD;
 
 	/**
 	 * Creates a table column.
-	 * @param array column metadata
+	 * @param array $column column metadata
 	 * @return CDbColumnSchema normalized column metadata
 	 */
 	protected function createColumn($column)
@@ -209,13 +237,14 @@ EOD;
 
 	/**
 	 * Collects the primary and foreign key column details for the given table.
-	 * @param COciTableSchema the table metadata
+	 * @param COciTableSchema $table the table metadata
 	 */
 	protected function findConstraints($table)
 	{
 		$sql=<<<EOD
 		SELECT D.constraint_type as CONSTRAINT_TYPE, C.COLUMN_NAME, C.position, D.r_constraint_name,
-                E.table_name as table_ref, f.column_name as column_ref
+                E.table_name as table_ref, f.column_name as column_ref,
+            	C.table_name
         FROM ALL_CONS_COLUMNS C
         inner join ALL_constraints D on D.OWNER = C.OWNER and D.constraint_name = C.constraint_name
         left join ALL_constraints E on E.OWNER = D.r_OWNER and E.constraint_name = D.r_constraint_name
@@ -239,9 +268,10 @@ EOD;
 		}
 	}
 
-
 	/**
 	 * Returns all table names in the database.
+	 * @param string $schema the schema of the tables. Defaults to empty string, meaning the current or default schema.
+	 * If not empty, the returned table names will be prefixed with the schema name.
 	 * @return array all table names in the database.
 	 */
 	protected function findTableNames($schema='')
@@ -267,11 +297,54 @@ EOD;
 		$names=array();
 		foreach($rows as $row)
 		{
-			if($schema===$this->getDefaultSchema())
+			if($schema===$this->getDefaultSchema() || $schema==='')
 				$names[]=$row['TABLE_NAME'];
 			else
-				$names[]=$row['SCHEMA_NAME'].'.'.$row['TABLE_NAME'];
+				$names[]=$row['TABLE_SCHEMA'].'.'.$row['TABLE_NAME'];
 		}
 		return $names;
+	}
+
+	/**
+	 * Builds a SQL statement for renaming a DB table.
+	 * @param string $table the table to be renamed. The name will be properly quoted by the method.
+	 * @param string $newName the new table name. The name will be properly quoted by the method.
+	 * @return string the SQL statement for renaming a DB table.
+	 * @since 1.1.6
+	 */
+	public function renameTable($table, $newName)
+	{
+		return 'ALTER TABLE ' . $this->quoteTableName($table) . ' RENAME TO ' . $this->quoteTableName($newName);
+	}
+
+	/**
+	 * Builds a SQL statement for changing the definition of a column.
+	 * @param string $table the table whose column is to be changed. The table name will be properly quoted by the method.
+	 * @param string $column the name of the column to be changed. The name will be properly quoted by the method.
+	 * @param string $type the new column type. The {@link getColumnType} method will be invoked to convert abstract column type (if any)
+	 * into the physical one. Anything that is not recognized as abstract type will be kept in the generated SQL.
+	 * For example, 'string' will be turned into 'varchar(255)', while 'string not null' will become 'varchar(255) not null'.
+	 * @return string the SQL statement for changing the definition of a column.
+	 * @since 1.1.6
+	 */
+	public function alterColumn($table, $column, $type)
+	{
+		$type=$this->getColumnType($type);
+		$sql='ALTER TABLE ' . $this->quoteTableName($table) . ' MODIFY '
+			. $this->quoteColumnName($column) . ' '
+			. $this->getColumnType($type);
+		return $sql;
+	}
+
+	/**
+	 * Builds a SQL statement for dropping an index.
+	 * @param string $name the name of the index to be dropped. The name will be properly quoted by the method.
+	 * @param string $table the table whose index is to be dropped. The name will be properly quoted by the method.
+	 * @return string the SQL statement for dropping an index.
+	 * @since 1.1.6
+	 */
+	public function dropIndex($name, $table)
+	{
+		return 'DROP INDEX '.$this->quoteTableName($name);
 	}
 }

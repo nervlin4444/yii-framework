@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -19,8 +19,15 @@
  * and {@link IUserIdentity::getId} that are required by the {@link IUserIdentity}
  * interface.
  *
+ * @property mixed $id A value that uniquely represents the identity (e.g. primary key value).
+ * The default implementation simply returns {@link name}.
+ * @property string $name The display name for the identity.
+ * The default implementation simply returns empty string.
+ * @property array $persistentStates The identity states that should be persisted.
+ * @property whether $isAuthenticated The authentication is successful.
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CBaseUserIdentity.php 1896 2010-03-13 14:11:24Z qiang.xue $
+ * @version $Id: CBaseUserIdentity.php 3515 2011-12-28 12:29:24Z mdomba $
  * @package system.web.auth
  * @since 1.0
  */
@@ -76,7 +83,7 @@ abstract class CBaseUserIdentity extends CComponent implements IUserIdentity
 	/**
 	 * Sets an array of presistent states.
 	 *
-	 * @param $states array the identity states that should be persisted.
+	 * @param array $states the identity states that should be persisted.
 	 */
 	public function setPersistentStates($states)
 	{
@@ -95,8 +102,8 @@ abstract class CBaseUserIdentity extends CComponent implements IUserIdentity
 
 	/**
 	 * Gets the persisted state by the specified name.
-	 * @param string the name of the state
-	 * @param mixed the default value to be returned if the named state does not exist
+	 * @param string $name the name of the state
+	 * @param mixed $defaultValue the default value to be returned if the named state does not exist
 	 * @return mixed the value of the named state
 	 */
 	public function getState($name,$defaultValue=null)
@@ -106,8 +113,8 @@ abstract class CBaseUserIdentity extends CComponent implements IUserIdentity
 
 	/**
 	 * Sets the named state with a given value.
-	 * @param string the name of the state
-	 * @param mixed the value of the named state
+	 * @param string $name the name of the state
+	 * @param mixed $value the value of the named state
 	 */
 	public function setState($name,$value)
 	{
@@ -116,8 +123,7 @@ abstract class CBaseUserIdentity extends CComponent implements IUserIdentity
 
 	/**
 	 * Removes the specified state.
-	 * @param string the name of the state
-	 * @since 1.0.8
+	 * @param string $name the name of the state
 	 */
 	public function clearState($name)
 	{

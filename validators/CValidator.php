@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -44,12 +44,13 @@
  * <li>default: {@link CDefaultValueValidator}</li>
  * <li>exist: {@link CExistValidator}</li>
  * <li>boolean: {@link CBooleanValidator}</li>
+ * <li>date: {@link CDateValidator}</li>
  * <li>safe: {@link CSafeValidator}</li>
  * <li>unsafe: {@link CUnsafeValidator}</li>
  * </ul>
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CValidator.php 2268 2010-07-18 17:44:48Z qiang.xue $
+ * @version $Id: CValidator.php 3515 2011-12-28 12:29:24Z mdomba $
  * @package system.validators
  * @since 1.0
  */
@@ -77,6 +78,7 @@ abstract class CValidator extends CComponent
 		'boolean'=>'CBooleanValidator',
 		'safe'=>'CSafeValidator',
 		'unsafe'=>'CUnsafeValidator',
+		'date'=>'CDateValidator',
 	);
 
 	/**
@@ -90,7 +92,7 @@ abstract class CValidator extends CComponent
 	 */
 	public $message;
 	/**
-	 * @var boolean whether this validation rule should be skipped if when there is already a validation
+	 * @var boolean whether this validation rule should be skipped when there is already a validation
 	 * error for the current attribute. Defaults to false.
 	 * @since 1.1.1
 	 */
@@ -106,26 +108,32 @@ abstract class CValidator extends CComponent
 	 * @since 1.1.4
 	 */
 	public $safe=true;
+	/**
+	 * @var boolean whether to perform client-side validation. Defaults to true.
+	 * Please refer to {@link CActiveForm::enableClientValidation} for more details about client-side validation.
+	 * @since 1.1.7
+	 */
+	public $enableClientValidation=true;
 
 	/**
 	 * Validates a single attribute.
-	 * This method should be overriden by child classes.
-	 * @param CModel the data object being validated
-	 * @param string the name of the attribute to be validated.
+	 * This method should be overridden by child classes.
+	 * @param CModel $object the data object being validated
+	 * @param string $attribute the name of the attribute to be validated.
 	 */
 	abstract protected function validateAttribute($object,$attribute);
 
 
 	/**
 	 * Creates a validator object.
-	 * @param string the name or class of the validator
-	 * @param CModel the data object being validated that may contain the inline validation method
-	 * @param mixed list of attributes to be validated. This can be either an array of
+	 * @param string $name the name or class of the validator
+	 * @param CModel $object the data object being validated that may contain the inline validation method
+	 * @param mixed $attributes list of attributes to be validated. This can be either an array of
 	 * the attribute names or a string of comma-separated attribute names.
-	 * @param array initial values to be applied to the validator properties
+	 * @param array $params initial values to be applied to the validator properties
 	 * @return CValidator the validator
 	 */
-	public static function createValidator($name,$object,$attributes,$params)
+	public static function createValidator($name,$object,$attributes,$params=array())
 	{
 		if(is_string($attributes))
 			$attributes=preg_split('/[\s,]+/',$attributes,-1,PREG_SPLIT_NO_EMPTY);
@@ -145,6 +153,11 @@ abstract class CValidator extends CComponent
 			$validator=new CInlineValidator;
 			$validator->attributes=$attributes;
 			$validator->method=$name;
+			if(isset($params['clientValidate']))
+			{
+				$validator->clientValidate=$params['clientValidate'];
+				unset($params['clientValidate']);
+			}
 			$validator->params=$params;
 			if(isset($params['skipOnError']))
 				$validator->skipOnError=$params['skipOnError'];
@@ -168,8 +181,8 @@ abstract class CValidator extends CComponent
 
 	/**
 	 * Validates the specified object.
-	 * @param CModel the data object being validated
-	 * @param array the list of attributes to be validated. Defaults to null,
+	 * @param CModel $object the data object being validated
+	 * @param array $attributes the list of attributes to be validated. Defaults to null,
 	 * meaning every attribute listed in {@link attributes} will be validated.
 	 */
 	public function validate($object,$attributes=null)
@@ -186,15 +199,32 @@ abstract class CValidator extends CComponent
 	}
 
 	/**
+	 * Returns the JavaScript needed for performing client-side validation.
+	 * Do not override this method if the validator does not support client-side validation.
+	 * Two predefined JavaScript variables can be used:
+	 * <ul>
+	 * <li>value: the value to be validated</li>
+	 * <li>messages: an array used to hold the validation error messages for the value</li>
+	 * </ul>
+	 * @param CModel $object the data object being validated
+	 * @param string $attribute the name of the attribute to be validated.
+	 * @return string the client-side validation script. Null if the validator does not support client-side validation.
+	 * @see CActiveForm::enableClientValidation
+	 * @since 1.1.7
+	 */
+	public function clientValidateAttribute($object,$attribute)
+	{
+	}
+
+	/**
 	 * Returns a value indicating whether the validator applies to the specified scenario.
 	 * A validator applies to a scenario as long as any of the following conditions is met:
 	 * <ul>
 	 * <li>the validator's "on" property is empty</li>
 	 * <li>the validator's "on" property contains the specified scenario</li>
 	 * </ul>
-	 * @param string scenario name
+	 * @param string $scenario scenario name
 	 * @return boolean whether the validator applies to the specified scenario.
-	 * @since 1.0.2
 	 */
 	public function applyTo($scenario)
 	{
@@ -204,10 +234,10 @@ abstract class CValidator extends CComponent
 	/**
 	 * Adds an error about the specified attribute to the active record.
 	 * This is a helper method that performs message selection and internationalization.
-	 * @param CModel the data object being validated
-	 * @param string the attribute being validated
-	 * @param string the error message
-	 * @param array values for the placeholders in the error message
+	 * @param CModel $object the data object being validated
+	 * @param string $attribute the attribute being validated
+	 * @param string $message the error message
+	 * @param array $params values for the placeholders in the error message
 	 */
 	protected function addError($object,$attribute,$message,$params=array())
 	{
@@ -219,10 +249,9 @@ abstract class CValidator extends CComponent
 	 * Checks if the given value is empty.
 	 * A value is considered empty if it is null, an empty array, or the trimmed result is an empty string.
 	 * Note that this method is different from PHP empty(). It will return false when the value is 0.
-	 * @param mixed the value to be checked
-	 * @param boolean whether to perform trimming before checking if the string is empty. Defaults to false.
+	 * @param mixed $value the value to be checked
+	 * @param boolean $trim whether to perform trimming before checking if the string is empty. Defaults to false.
 	 * @return boolean whether the value is empty
-	 * @since 1.0.9
 	 */
 	protected function isEmpty($value,$trim=false)
 	{

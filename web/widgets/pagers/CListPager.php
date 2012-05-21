@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -13,7 +13,7 @@
  * CListPager displays a dropdown list that contains options leading to different pages of target.
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CListPager.php 1678 2010-01-07 21:02:00Z qiang.xue $
+ * @version $Id: CListPager.php 2799 2011-01-01 19:31:13Z qiang.xue $
  * @package system.web.widgets.pagers
  * @since 1.0
  */
@@ -76,7 +76,7 @@ class CListPager extends CBasePager
 	/**
 	 * Generates the list option for the specified page number.
 	 * You may override this method to customize the option display.
-	 * @param integer zero-based page number
+	 * @param integer $page zero-based page number
 	 * @return string the list option for the page number
 	 */
 	protected function generatePageText($page)

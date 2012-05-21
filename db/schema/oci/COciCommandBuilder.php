@@ -4,7 +4,7 @@
  *
  * @author Ricardo Grana <rickgrana@yahoo.com.br>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -12,9 +12,8 @@
  * COciCommandBuilder provides basic methods to create query commands for tables.
  *
  * @author Ricardo Grana <rickgrana@yahoo.com.br>
- * @version $Id: COciCommandBuilder.php 1867 2010-03-09 18:22:16Z qiang.xue $
+ * @version $Id: COciCommandBuilder.php 3515 2011-12-28 12:29:24Z mdomba $
  * @package system.db.schema.oci
- * @since 1.0.5
  */
 class COciCommandBuilder extends CDbCommandBuilder
 {
@@ -25,7 +24,7 @@ class COciCommandBuilder extends CDbCommandBuilder
 
 	/**
 	 * Returns the last insertion ID for the specified table.
-	 * @param mixed the table schema ({@link CDbTableSchema}) or the table name (string).
+	 * @param mixed $table the table schema ({@link CDbTableSchema}) or the table name (string).
 	 * @return mixed last insertion id. Null is returned if no sequence name.
 	 */
 	public function getLastInsertID($table)
@@ -36,9 +35,9 @@ class COciCommandBuilder extends CDbCommandBuilder
 	/**
 	 * Alters the SQL to apply LIMIT and OFFSET.
 	 * Default implementation is applicable for PostgreSQL, MySQL and SQLite.
-	 * @param string SQL query string without LIMIT and OFFSET.
-	 * @param integer maximum number of rows, -1 to ignore limit.
-	 * @param integer row offset, -1 to ignore offset.
+	 * @param string $sql SQL query string without LIMIT and OFFSET.
+	 * @param integer $limit maximum number of rows, -1 to ignore limit.
+	 * @param integer $offset row offset, -1 to ignore offset.
 	 * @return string SQL with LIMIT and OFFSET
 	 */
 	public function applyLimit($sql,$limit,$offset)
@@ -75,8 +74,8 @@ EOD;
 
 	/**
 	 * Creates an INSERT command.
-	 * @param mixed the table schema ({@link CDbTableSchema}) or the table name (string).
-	 * @param array data to be inserted (column name=>column value). If a key is not a valid column name, the corresponding value will be ignored.
+	 * @param mixed $table the table schema ({@link CDbTableSchema}) or the table name (string).
+	 * @param array $data data to be inserted (column name=>column value). If a key is not a valid column name, the corresponding value will be ignored.
 	 * @return CDbCommand insert command
 	 */
 	public function createInsertCommand($table,$data)
@@ -92,7 +91,11 @@ EOD;
 			{
 				$fields[]=$column->rawName;
 				if($value instanceof CDbExpression)
+				{
 					$placeholders[]=$value->expression;
+					foreach($value->params as $n=>$v)
+						$values[$n]=$v;
+				}
 				else
 				{
 					$placeholders[]=self::PARAM_PREFIX.$i;
@@ -104,9 +107,9 @@ EOD;
 
 		$sql="INSERT INTO {$table->rawName} (".implode(', ',$fields).') VALUES ('.implode(', ',$placeholders).')';
 
-		if(is_string($table->primaryKey))
+		if(is_string($table->primaryKey) && ($column=$table->getColumn($table->primaryKey))!==null && $column->type!=='string')
 		{
-			$sql.=' RETURNING "'.$table->primaryKey.'" INTO :RETURN_ID';
+			$sql.=' RETURNING '.$column->rawName.' INTO :RETURN_ID';
 			$command=$this->getDbConnection()->createCommand($sql);
 			$command->bindParam(':RETURN_ID', $this->returnID, PDO::PARAM_INT, 12);
 			$table->sequenceName='RETURN_ID';

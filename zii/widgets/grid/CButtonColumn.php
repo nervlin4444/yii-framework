@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -20,7 +20,7 @@ Yii::import('zii.widgets.grid.CGridColumn');
  * and customize the display order of the buttons.
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CButtonColumn.php 2326 2010-08-20 17:02:07Z qiang.xue $
+ * @version $Id: CButtonColumn.php 3424 2011-10-24 20:13:19Z mdomba $
  * @package zii.widgets.grid
  * @since 1.1
  */
@@ -113,8 +113,30 @@ class CButtonColumn extends CGridColumn
 	/**
 	 * @var string the confirmation message to be displayed when delete button is clicked.
 	 * By setting this property to be false, no confirmation message will be displayed.
+	 * This property is used only if <code>$this->buttons['delete']['click']</code> is not set.
 	 */
 	public $deleteConfirmation;
+	/**
+	 * @var string a javascript function that will be invoked after the delete ajax call.
+	 * This property is used only if <code>$this->buttons['delete']['click']</code> is not set.
+	 *
+	 * The function signature is <code>function(link, success, data)</code>
+	 * <ul>
+	 * <li><code>link</code> references the delete link.</li>
+	 * <li><code>success</code> status of the ajax call, true if the ajax call was successful, false if the ajax call failed.
+	 * <li><code>data</code> the data returned by the server in case of a successful call or XHR object in case of error.
+	 * </ul>
+	 * Note that if success is true it does not mean that the delete was successful, it only means that the ajax call was successful.
+	 *
+	 * Example:
+	 * <pre>
+	 *  array(
+	 *     class'=>'CButtonColumn',
+	 *     'afterDelete'=>'function(link,success,data){ if(success) alert("Delete completed successfuly"); }',
+	 *  ),
+	 * </pre>
+	 */
+	public $afterDelete;
 	/**
 	 * @var array the configuration for additional buttons. Each array element specifies a single button
 	 * which has the following format:
@@ -140,7 +162,6 @@ class CButtonColumn extends CGridColumn
 	/**
 	 * Initializes the column.
 	 * This method registers necessary client script for the button column.
-	 * @param CGridView the grid view instance
 	 */
 	public function init()
 	{
@@ -196,33 +217,45 @@ class CButtonColumn extends CGridColumn
 				$this->buttons[$id]=$button;
 		}
 
-		if(is_string($this->deleteConfirmation))
-			$confirmation="if(!confirm(".CJavaScript::encode($this->deleteConfirmation).")) return false;";
-		else
-			$confirmation='';
-
-		if(Yii::app()->request->enableCsrfValidation)
+		if(!isset($this->buttons['delete']['click']))
 		{
-	        $csrfTokenName = Yii::app()->request->csrfTokenName;
-	        $csrfToken = Yii::app()->request->csrfToken;
-	        $csrf = "\n\t\tdata:{ '$csrfTokenName':'$csrfToken' },";
-		}
-		else
-			$csrf = '';
+			if(is_string($this->deleteConfirmation))
+				$confirmation="if(!confirm(".CJavaScript::encode($this->deleteConfirmation).")) return false;";
+			else
+				$confirmation='';
 
-		$this->buttons['delete']['click']=<<<EOD
+			if(Yii::app()->request->enableCsrfValidation)
+			{
+				$csrfTokenName = Yii::app()->request->csrfTokenName;
+				$csrfToken = Yii::app()->request->csrfToken;
+				$csrf = "\n\t\tdata:{ '$csrfTokenName':'$csrfToken' },";
+			}
+			else
+				$csrf = '';
+
+			if($this->afterDelete===null)
+				$this->afterDelete='function(){}';
+
+			$this->buttons['delete']['click']=<<<EOD
 function() {
 	$confirmation
+	var th=this;
+	var afterDelete=$this->afterDelete;
 	$.fn.yiiGridView.update('{$this->grid->id}', {
 		type:'POST',
 		url:$(this).attr('href'),$csrf
-		success:function() {
+		success:function(data) {
 			$.fn.yiiGridView.update('{$this->grid->id}');
+			afterDelete(th,true,data);
+		},
+		error:function(XHR) {
+			return afterDelete(th,false,XHR);
 		}
 	});
 	return false;
 }
 EOD;
+		}
 	}
 
 	/**
@@ -236,7 +269,8 @@ EOD;
 			if(isset($button['click']))
 			{
 				$function=CJavaScript::encode($button['click']);
-				$js[]="jQuery('#{$this->grid->id} a.{$button['options']['class']}').live('click',$function);";
+				$class=preg_replace('/\s+/','.',$button['options']['class']);
+				$js[]="jQuery('#{$this->grid->id} a.{$class}').live('click',$function);";
 			}
 		}
 
@@ -247,8 +281,8 @@ EOD;
 	/**
 	 * Renders the data cell content.
 	 * This method renders the view, update and delete buttons in the data cell.
-	 * @param integer the row number (zero-based)
-	 * @param mixed the data associated with the row
+	 * @param integer $row the row number (zero-based)
+	 * @param mixed $data the data associated with the row
 	 */
 	protected function renderDataCellContent($row,$data)
 	{
@@ -266,11 +300,11 @@ EOD;
 
 	/**
 	 * Renders a link button.
-	 * @param string the ID of the button
-	 * @param array the button configuration which may contain 'label', 'url', 'imageUrl' and 'options' elements.
+	 * @param string $id the ID of the button
+	 * @param array $button the button configuration which may contain 'label', 'url', 'imageUrl' and 'options' elements.
 	 * See {@link buttons} for more details.
-	 * @param integer the row number (zero-based)
-	 * @param mixed the data object associated with the row
+	 * @param integer $row the row number (zero-based)
+	 * @param mixed $data the data object associated with the row
 	 */
 	protected function renderButton($id,$button,$row,$data)
 	{

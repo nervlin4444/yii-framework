@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -15,7 +15,7 @@
  * The method name is like 'actionXYZ' where 'XYZ' stands for the action name.
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CInlineAction.php 2414 2010-09-02 14:40:22Z qiang.xue $
+ * @version $Id: CInlineAction.php 3137 2011-03-28 11:08:06Z mdomba $
  * @package system.web.actions
  * @since 1.0
  */
@@ -28,25 +28,26 @@ class CInlineAction extends CAction
 	 */
 	public function run()
 	{
-		$controller=$this->getController();
-		$methodName='action'.$this->getId();
-		$method=new ReflectionMethod($controller,$methodName);
-		if(($n=$method->getNumberOfParameters())>0)
-		{
-			$params=array();
-			foreach($method->getParameters() as $i=>$param)
-			{
-				$name=$param->getName();
-				if(isset($_GET[$name]))
-					$params[]=$_GET[$name];
-				else if($param->isDefaultValueAvailable())
-					$params[]=$param->getDefaultValue();
-				else
-					throw new CHttpException(400,Yii::t('yii','Your request is invalid.'));
-			}
-			$method->invokeArgs($controller,$params);
-		}
-		else
-			$controller->$methodName();
+		$method='action'.$this->getId();
+		$this->getController()->$method();
 	}
+
+	/**
+	 * Runs the action with the supplied request parameters.
+	 * This method is internally called by {@link CController::runAction()}.
+	 * @param array $params the request parameters (name=>value)
+	 * @return boolean whether the request parameters are valid
+	 * @since 1.1.7
+	 */
+	public function runWithParams($params)
+	{
+		$methodName='action'.$this->getId();
+		$controller=$this->getController();
+		$method=new ReflectionMethod($controller, $methodName);
+		if($method->getNumberOfParameters()>0)
+			return $this->runWithParamsInternal($controller, $method, $params);
+		else
+			return $controller->$methodName();
+	}
+
 }

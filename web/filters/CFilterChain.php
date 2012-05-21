@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -15,7 +15,7 @@
  * CFilterChain executes the filter list by {@link run()}.
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CFilterChain.php 2377 2010-08-30 16:11:20Z qiang.xue $
+ * @version $Id: CFilterChain.php 3204 2011-05-05 21:36:32Z alexander.makarow $
  * @package system.web.filters
  * @since 1.0
  */
@@ -37,8 +37,8 @@ class CFilterChain extends CList
 
 	/**
 	 * Constructor.
-	 * @param CController the controller who executes the action.
-	 * @param CAction the action being filtered by this chain.
+	 * @param CController $controller the controller who executes the action.
+	 * @param CAction $action the action being filtered by this chain.
 	 */
 	public function __construct($controller,$action)
 	{
@@ -49,9 +49,10 @@ class CFilterChain extends CList
 	/**
 	 * CFilterChain factory method.
 	 * This method creates a CFilterChain instance.
-	 * @param CController the controller who executes the action.
-	 * @param CAction the action being filtered by this chain.
-	 * @param array list of filters to be applied to the action.
+	 * @param CController $controller the controller who executes the action.
+	 * @param CAction $action the action being filtered by this chain.
+	 * @param array $filters list of filters to be applied to the action.
+	 * @return CFilterChain
 	 */
 	public static function create($controller,$action,$filters)
 	{
@@ -103,8 +104,8 @@ class CFilterChain extends CList
 	 * This method overrides the parent implementation by adding
 	 * additional check for the item to be added. In particular,
 	 * only objects implementing {@link IFilter} can be added to the list.
-	 * @param integer the specified position.
-	 * @param mixed new item
+	 * @param integer $index the specified position.
+	 * @param mixed $item new item
 	 * @throws CException If the index specified exceeds the bound or the list is read-only, or the item is not an {@link IFilter} instance.
 	 */
 	public function insertAt($index,$item)

@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -29,8 +29,11 @@
  * }
  * </pre>
  *
+ * @property CDbConnection $connection The DB connection for this transaction.
+ * @property boolean $active Whether this transaction is active.
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CDbTransaction.php 1678 2010-01-07 21:02:00Z qiang.xue $
+ * @version $Id: CDbTransaction.php 3426 2011-10-25 00:01:09Z alexander.makarow $
  * @package system.db
  * @since 1.0
  */
@@ -41,13 +44,13 @@ class CDbTransaction extends CComponent
 
 	/**
 	 * Constructor.
-	 * @param CDbConnection the connection associated with this transaction
+	 * @param CDbConnection $connection the connection associated with this transaction
 	 * @see CDbConnection::beginTransaction
 	 */
 	public function __construct(CDbConnection $connection)
 	{
 		$this->_connection=$connection;
-		$this->setActive(true);
+		$this->_active=true;
 	}
 
 	/**
@@ -99,7 +102,7 @@ class CDbTransaction extends CComponent
 	}
 
 	/**
-	 * @param boolean whether this transaction is active
+	 * @param boolean $value whether this transaction is active
 	 */
 	protected function setActive($value)
 	{

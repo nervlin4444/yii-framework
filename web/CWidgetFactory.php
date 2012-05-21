@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -41,7 +41,7 @@
  * As aforementioned, a skin is a set of initial property values for a widget.
  * It is thus represented as an associative array of name-value pairs.
  * Skins are stored in PHP scripts like other configurations. Each script file stores the skins
- * for a particular widget type and is named as the wiget class name (e.g. CLinkPager.php).
+ * for a particular widget type and is named as the widget class name (e.g. CLinkPager.php).
  * Each widget type may have one or several skins, identified by the skin name set via
  * {@link CWidget::skin} property. If the {@link CWidget::skin} property is not set for a given
  * widget, it means the default skin would be used. The following shows the possible skins for
@@ -72,7 +72,7 @@
  * normally without causing any error.
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CWidgetFactory.php 2172 2010-06-07 19:56:01Z qiang.xue $
+ * @version $Id: CWidgetFactory.php 3421 2011-10-20 21:23:38Z alexander.makarow $
  * @package system.web
  * @since 1.1
  */
@@ -137,9 +137,9 @@ class CWidgetFactory extends CApplicationComponent implements IWidgetFactory
 
 	/**
 	 * Creates a new widget based on the given class name and initial properties.
-	 * @param CBaseController the owner of the new widget
-	 * @param string the class name of the widget. This can also be a path alias (e.g. system.web.widgets.COutputCache)
-	 * @param array the initial property values (name=>value) of the widget.
+	 * @param CBaseController $owner the owner of the new widget
+	 * @param string $className the class name of the widget. This can also be a path alias (e.g. system.web.widgets.COutputCache)
+	 * @param array $properties the initial property values (name=>value) of the widget.
 	 * @return CWidget the newly created widget whose properties have been initialized with the given values.
 	 */
 	public function createWidget($owner,$className,$properties=array())
@@ -165,8 +165,8 @@ class CWidgetFactory extends CApplicationComponent implements IWidgetFactory
 
 	/**
 	 * Returns the skin for the specified widget class and skin name.
-	 * @param string the widget class name
-	 * @param string the widget skin name
+	 * @param string $className the widget class name
+	 * @param string $skinName the widget skin name
 	 * @return array the skin (name=>value) for the widget
 	 */
 	protected function getSkin($className,$skinName)

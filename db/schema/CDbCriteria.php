@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -12,7 +12,7 @@
  * CDbCriteria represents a query criteria, such as conditions, ordering by, limit/offset.
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CDbCriteria.php 2413 2010-09-02 02:19:56Z qiang.xue $
+ * @version $Id: CDbCriteria.php 3515 2011-12-28 12:29:24Z mdomba $
  * @package system.db.schema
  * @since 1.0
  */
@@ -33,7 +33,6 @@ class CDbCriteria extends CComponent
 	/**
 	 * @var boolean whether to select distinct rows of data only. If this is set true,
 	 * the SELECT clause would be changed to SELECT DISTINCT.
-	 * @since 1.0.9
 	 */
 	public $distinct=false;
 	/**
@@ -71,11 +70,10 @@ class CDbCriteria extends CComponent
 	/**
 	 * @var string the condition to be applied with GROUP-BY clause.
 	 * For example, <code>'SUM(revenue)<50000'</code>.
-	 * @since 1.0.1
 	 */
 	public $having='';
 	/**
-	 * @var array the relational query criteria. This is used for fetching related objects in eager loading fashion.
+	 * @var mixed the relational query criteria. This is used for fetching related objects in eager loading fashion.
 	 * This property is effective only when the criteria is passed as a parameter to the following methods of CActiveRecord:
 	 * <ul>
 	 * <li>{@link CActiveRecord::find()}</li>
@@ -97,7 +95,7 @@ class CDbCriteria extends CComponent
 	public $alias;
 	/**
 	 * @var boolean whether the foreign tables should be joined with the primary table in a single SQL.
-	 * This property is only used in relational AR queries.
+	 * This property is only used in relational AR queries for HAS_MANY and MANY_MANY relations.
 	 *
 	 * When this property is set true, only a single SQL will be executed for a relational AR query,
 	 * even if the primary table is limited and the relationship between a foreign table and the primary
@@ -105,21 +103,72 @@ class CDbCriteria extends CComponent
 	 *
 	 * When this property is set false, a SQL statement will be executed for each HAS_MANY relation.
 	 *
-	 * When this property is not set, if the primary table is limited, a SQL statement will be executed for each HAS_MANY relation.
+	 * When this property is not set, if the primary table is limited or paginated,
+	 * a SQL statement will be executed for each HAS_MANY relation.
 	 * Otherwise, a single SQL statement will be executed for all.
 	 *
 	 * @since 1.1.4
 	 */
 	public $together;
+	/**
+	 * @var string the name of the AR attribute whose value should be used as index of the query result array.
+	 * Defaults to null, meaning the result array will be zero-based integers.
+	 * @since 1.1.5
+	 */
+	public $index;
+	/**
+     * @var mixed scopes to apply
+	 *
+     * This property is effective only when passing criteria to
+	 * the one of the following methods:
+     * <ul>
+     * <li>{@link CActiveRecord::find()}</li>
+     * <li>{@link CActiveRecord::findAll()}</li>
+     * <li>{@link CActiveRecord::findByPk()}</li>
+     * <li>{@link CActiveRecord::findAllByPk()}</li>
+     * <li>{@link CActiveRecord::findByAttributes()}</li>
+     * <li>{@link CActiveRecord::findAllByAttributes()}</li>
+     * <li>{@link CActiveRecord::count()}</li>
+     * </ul>
+	 *
+	 * Can be set to one of the following:
+	 * <ul>
+	 * <li>One scope: $criteria->scopes='scopeName';</li>
+	 * <li>Multiple scopes: $criteria->scopes=array('scopeName1','scopeName2');</li>
+	 * <li>Scope with parameters: $criteria->scopes=array('scopeName'=>array($params));</li>
+	 * <li>Multiple scopes with parameters: $criteria->scopes=array('scopeName1'=>array($params1),'scopeName2'=>array($params2));</li>
+	 * <li>Multiple scopes with the same name: array(array('scopeName'=>array($params1)),array('scopeName'=>array($params2)));</li>
+	 * </ul>
+	 * @since 1.1.7
+	 */
+	public $scopes;
 
 	/**
 	 * Constructor.
-	 * @param array criteria initial property values (indexed by property name)
+	 * @param array $data criteria initial property values (indexed by property name)
 	 */
 	public function __construct($data=array())
 	{
 		foreach($data as $name=>$value)
 			$this->$name=$value;
+	}
+
+	/**
+	 * Remaps criteria parameters on unserialize to prevent name collisions.
+	 * @since 1.1.9
+	 */
+	public function __wakeup()
+	{
+		$map=array();
+		$params=array();
+		foreach($this->params as $name=>$value)
+		{
+			$newName=self::PARAM_PREFIX.self::$paramCount++;
+			$map[$name]=$newName;
+			$params[$newName]=$value;
+		}
+		$this->condition=strtr($this->condition,$map);
+		$this->params=$params;
 	}
 
 	/**
@@ -130,10 +179,9 @@ class CDbCriteria extends CComponent
 	 * will be concatenated together via the operator.
 	 * This method handles the case when the existing condition is empty.
 	 * After calling this method, the {@link condition} property will be modified.
-	 * @param mixed the new condition. It can be either a string or an array of strings.
-	 * @param string the operator to join different conditions. Defaults to 'AND'.
+	 * @param mixed $condition the new condition. It can be either a string or an array of strings.
+	 * @param string $operator the operator to join different conditions. Defaults to 'AND'.
 	 * @return CDbCriteria the criteria object itself
-	 * @since 1.0.9
 	 */
 	public function addCondition($condition,$operator='AND')
 	{
@@ -156,21 +204,22 @@ class CDbCriteria extends CComponent
 	 * which defaults to 'AND'.
 	 * The search condition is generated using the SQL LIKE operator with the given column name and
 	 * search keyword.
-	 * @param string the column name (or a valid SQL expression)
-	 * @param string the search keyword. This interpretation of the keyword is affected by the next parameter.
-	 * @param boolean whether the keyword should be escaped if it contains characters % or _.
+	 * @param string $column the column name (or a valid SQL expression)
+	 * @param string $keyword the search keyword. This interpretation of the keyword is affected by the next parameter.
+	 * @param boolean $escape whether the keyword should be escaped if it contains characters % or _.
 	 * When this parameter is true (default), the special characters % (matches 0 or more characters)
 	 * and _ (matches a single character) will be escaped, and the keyword will be surrounded with a %
 	 * character on both ends. When this parameter is false, the keyword will be directly used for
 	 * matching without any change.
-	 * @param string the operator used to concatenate the new condition with the existing one.
+	 * @param string $operator the operator used to concatenate the new condition with the existing one.
 	 * Defaults to 'AND'.
-	 * @param string the LIKE operator. Defaults to 'LIKE'. You may also set this to be 'NOT LIKE'.
+	 * @param string $like the LIKE operator. Defaults to 'LIKE'. You may also set this to be 'NOT LIKE'.
 	 * @return CDbCriteria the criteria object itself
-	 * @since 1.0.10
 	 */
 	public function addSearchCondition($column,$keyword,$escape=true,$operator='AND',$like='LIKE')
 	{
+		if($keyword=='')
+			return $this;
 		if($escape)
 			$keyword='%'.strtr($keyword,array('%'=>'\%', '_'=>'\_', '\\'=>'\\\\')).'%';
 		$condition=$column." $like ".self::PARAM_PREFIX.self::$paramCount;
@@ -184,12 +233,11 @@ class CDbCriteria extends CComponent
 	 * which defaults to 'AND'.
 	 * The IN condition is generated by using the SQL IN operator which requires the specified
 	 * column value to be among the given list of values.
-	 * @param string the column name (or a valid SQL expression)
-	 * @param array list of values that the column value should be in
-	 * @param string the operator used to concatenate the new condition with the existing one.
+	 * @param string $column the column name (or a valid SQL expression)
+	 * @param array $values list of values that the column value should be in
+	 * @param string $operator the operator used to concatenate the new condition with the existing one.
 	 * Defaults to 'AND'.
 	 * @return CDbCriteria the criteria object itself
-	 * @since 1.0.10
 	 */
 	public function addInCondition($column,$values,$operator='AND')
 	{
@@ -222,9 +270,9 @@ class CDbCriteria extends CComponent
 	 * which defaults to 'AND'.
 	 * The NOT IN condition is generated by using the SQL NOT IN operator which requires the specified
 	 * column value to be among the given list of values.
-	 * @param string the column name (or a valid SQL expression)
-	 * @param array list of values that the column value should be in
-	 * @param string the operator used to concatenate the new condition with the existing one.
+	 * @param string $column the column name (or a valid SQL expression)
+	 * @param array $values list of values that the column value should not be in
+	 * @param string $operator the operator used to concatenate the new condition with the existing one.
 	 * Defaults to 'AND'.
 	 * @return CDbCriteria the criteria object itself
 	 * @since 1.1.1
@@ -259,12 +307,11 @@ class CDbCriteria extends CComponent
 	 * The generated condition will be concatenated to the existing {@link condition}
 	 * via the specified operator which defaults to 'AND'.
 	 * The condition is generated by matching each column and the corresponding value.
-	 * @param array list of column names and values to be matched (name=>value)
-	 * @param string the operator to concatenate multiple column matching condition. Defaults to 'AND'.
-	 * @param string the operator used to concatenate the new condition with the existing one.
+	 * @param array $columns list of column names and values to be matched (name=>value)
+	 * @param string $columnOperator the operator to concatenate multiple column matching condition. Defaults to 'AND'.
+	 * @param string $operator the operator used to concatenate the new condition with the existing one.
 	 * Defaults to 'AND'.
 	 * @return CDbCriteria the criteria object itself
-	 * @since 1.0.10
 	 */
 	public function addColumnCondition($columns,$columnOperator='AND',$operator='AND')
 	{
@@ -308,19 +355,25 @@ class CDbCriteria extends CComponent
 	 * Note that any surrounding white spaces will be removed from the value before comparison.
 	 * When the value is empty, no comparison expression will be added to the search condition.
 	 *
-	 * @param string the name of the column to be searched
-	 * @param mixed the column value to be compared with. If the value is a string, the aforementioned
+	 * @param string $column the name of the column to be searched
+	 * @param mixed $value the column value to be compared with. If the value is a string, the aforementioned
 	 * intelligent comparison will be conducted. If the value is an array, the comparison is done
 	 * by exact match of any of the value in the array. If the string or the array is empty,
 	 * the existing search condition will not be modified.
-	 * @param boolean whether the value should consider partial text match (using LIKE and NOT LIKE operators).
+	 * @param boolean $partialMatch whether the value should consider partial text match (using LIKE and NOT LIKE operators).
 	 * Defaults to false, meaning exact comparison.
-	 * @param string the operator used to concatenate the new condition with the existing one.
+	 * @param string $operator the operator used to concatenate the new condition with the existing one.
 	 * Defaults to 'AND'.
+	 * @param boolean $escape whether the value should be escaped if $partialMatch is true and
+	 * the value contains characters % or _. When this parameter is true (default),
+	 * the special characters % (matches 0 or more characters)
+	 * and _ (matches a single character) will be escaped, and the value will be surrounded with a %
+	 * character on both ends. When this parameter is false, the value will be directly used for
+	 * matching without any change.
 	 * @return CDbCriteria the criteria object itself
 	 * @since 1.1.1
 	 */
-	public function compare($column, $value, $partialMatch=false, $operator='AND')
+	public function compare($column, $value, $partialMatch=false, $operator='AND', $escape=true)
 	{
 		if(is_array($value))
 		{
@@ -345,9 +398,9 @@ class CDbCriteria extends CComponent
 		if($partialMatch)
 		{
 			if($op==='')
-				return $this->addSearchCondition($column,$value,true,$operator);
+				return $this->addSearchCondition($column,$value,$escape,$operator);
 			if($op==='<>')
-				return $this->addSearchCondition($column,$value,true,$operator,'NOT LIKE');
+				return $this->addSearchCondition($column,$value,$escape,$operator,'NOT LIKE');
 		}
 		else if($op==='')
 			$op='=';
@@ -366,10 +419,10 @@ class CDbCriteria extends CComponent
 	 * If one or both values are empty then the condition is not added to the existing condition.
 	 * This method handles the case when the existing condition is empty.
 	 * After calling this method, the {@link condition} property will be modified.
-	 * @param string the name of the column to search between.
-	 * @param string the beginning value to start the between search.
-	 * @param string the ending value to end the between search.
-	 * @param string the operator used to concatenate the new condition with the existing one.
+	 * @param string $column the name of the column to search between.
+	 * @param string $valueStart the beginning value to start the between search.
+	 * @param string $valueEnd the ending value to end the between search.
+	 * @param string $operator the operator used to concatenate the new condition with the existing one.
 	 * Defaults to 'AND'.
 	 * @return CDbCriteria the criteria object itself
 	 * @since 1.1.2
@@ -398,11 +451,9 @@ class CDbCriteria extends CComponent
 	 * For example, if both criterias have conditions, they will be 'AND' together.
 	 * Also, the criteria passed as the parameter takes precedence in case
 	 * two options cannot be merged (e.g. LIMIT, OFFSET).
-	 * @param CDbCriteria the criteria to be merged with.
-	 * @param boolean whether to use 'AND' to merge condition and having options.
-	 * If false, 'OR' will be used instead. Defaults to 'AND'. This parameter has been
-	 * available since version 1.0.6.
-	 * @since 1.0.5
+	 * @param mixed $criteria the criteria to be merged with. Either an array or CDbCriteria.
+	 * @param boolean $useAnd whether to use 'AND' to merge condition and having options.
+	 * If false, 'OR' will be used instead. Defaults to 'AND'.
 	 */
 	public function mergeWith($criteria,$useAnd=true)
 	{
@@ -479,20 +530,77 @@ class CDbCriteria extends CComponent
 		if($criteria->together!==null)
 			$this->together=$criteria->together;
 
+		if($criteria->index!==null)
+			$this->index=$criteria->index;
+
+		if(empty($this->scopes))
+			$this->scopes=$criteria->scopes;
+		else if(!empty($criteria->scopes))
+		{
+			$scopes1=(array)$this->scopes;
+			$scopes2=(array)$criteria->scopes;
+			foreach($scopes1 as $k=>$v)
+			{
+				if(is_integer($k))
+					$scopes[]=$v;
+				else if(isset($scopes2[$k]))
+					$scopes[]=array($k=>$v);
+				else
+					$scopes[$k]=$v;
+			}
+			foreach($scopes2 as $k=>$v)
+			{
+				if(is_integer($k))
+					$scopes[]=$v;
+				else if(isset($scopes1[$k]))
+					$scopes[]=array($k=>$v);
+				else
+					$scopes[$k]=$v;
+			}
+			$this->scopes=$scopes;
+		}
+
 		if(empty($this->with))
 			$this->with=$criteria->with;
 		else if(!empty($criteria->with))
-			$this->with=CMap::mergeArray($this->with, $criteria->with);
+		{
+			$this->with=(array)$this->with;
+			foreach((array)$criteria->with as $k=>$v)
+			{
+				if(is_integer($k))
+					$this->with[]=$v;
+				else if(isset($this->with[$k]))
+				{
+					$excludes=array();
+					foreach(array('joinType','on') as $opt)
+					{
+						if(isset($this->with[$k][$opt]))
+							$excludes[$opt]=$this->with[$k][$opt];
+						if(isset($v[$opt]))
+							$excludes[$opt]= ($opt==='on' && isset($excludes[$opt]) && $v[$opt]!==$excludes[$opt]) ?
+								"($excludes[$opt]) AND $v[$opt]" : $v[$opt];
+						unset($this->with[$k][$opt]);
+						unset($v[$opt]);
+					}
+					$this->with[$k]=new self($this->with[$k]);
+					$this->with[$k]->mergeWith($v,$useAnd);
+					$this->with[$k]=$this->with[$k]->toArray();
+					if (count($excludes)!==0)
+						$this->with[$k]=CMap::mergeArray($this->with[$k],$excludes);
+				}
+				else
+					$this->with[$k]=$v;
+			}
+		}
 	}
 
 	/**
 	 * @return array the array representation of the criteria
-	 * @since 1.0.6
 	 */
 	public function toArray()
 	{
 		$result=array();
-		foreach(array('select', 'condition', 'params', 'limit', 'offset', 'order', 'group', 'join', 'having', 'distinct', 'with', 'alias', 'together') as $name)
+		foreach(array('select', 'condition', 'params', 'limit', 'offset', 'order', 'group', 'join', 'having', 'distinct', 'scopes', 'with', 'alias', 'index', 'together') as $name)
 			$result[$name]=$this->$name;
 		return $result;
 	}

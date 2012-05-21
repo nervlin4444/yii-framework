@@ -1,5 +1,5 @@
 /*
- ### jQuery Multiple File Upload Plugin v1.46 - 2009-05-12 ###
+ ### jQuery Multiple File Upload Plugin v1.47 - 2010-03-26 ###
  * Home: http://www.fyneworks.com/jquery/multiple-file-upload/
  * Code: http://code.google.com/p/jquery-multifile-plugin/
  *
@@ -454,7 +454,8 @@
      }; // interception
     })(method); // MAKE SURE THAT method IS ISOLATED for the interception
    };// for each method
-  }
+  } // $.fn.MultiFile.intercept
+		
  });
 	
 	/*--------------------------------------------------------*/
@@ -482,7 +483,7 @@
 		
 		// name of methods that should be automcatically intercepted so the plugin can disable
 		// extra file elements that are empty before execution and automatically re-enable them afterwards
-  autoIntercept: [ 'submit', 'ajaxSubmit', 'ajaxForm', 'validate' /* array of methods to intercept */ ],
+  autoIntercept: [ 'submit', 'ajaxSubmit', 'ajaxForm', 'validate', 'valid' /* array of methods to intercept */ ],
 		
 		// error handling function
 		error: function(s){

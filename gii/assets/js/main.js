@@ -1,13 +1,16 @@
 $(document).ready(function() {
+	if($('div.form.login').length) {  // in login page
+		$('input#LoginForm_password').focus();
+	}
+
 	$('table.preview input[name="checkAll"]').click(function() {
-		$('table.preview .confirm input').attr('checked', this.checked);
+		$('table.preview .confirm input').prop('checked', this.checked);
 	});
 
 	$('table.preview td.confirm input').click(function() {
-		$('table.preview input[name="checkAll"]').attr('checked', !$('table.preview td.confirm input:not(:checked)').length);
+		$('table.preview input[name="checkAll"]').prop('checked', !$('table.preview td.confirm input:not(:checked)').length);
 	});
-	$('table.preview input[name="checkAll"]').attr('checked', !$('table.preview td.confirm input:not(:checked)').length);
-
+	$('table.preview input[name="checkAll"]').prop('checked', !$('table.preview td.confirm input:not(:checked)').length);
 
 	$('.form .row.sticky input:not(.error), .form .row.sticky select:not(.error), .form .row.sticky textarea:not(.error)').each(function(){
 		var value;
@@ -28,7 +31,7 @@ $(document).ready(function() {
 	});
 
 
-	$('.form.gii .row input, .form.gii .row select').tooltip({
+	$('.form.gii .row input, .form.gii .row textarea, .form.gii .row select, .with-tooltip').not('.no-tooltip, .no-tooltip *').tooltip({
 	    position: "center right",
 		offset: [-2, 10]
 	});
@@ -55,8 +58,11 @@ $(document).ready(function() {
 					},
 					'showCloseButton': false,
 					'autoDimensions': false,
-					'width': 800,
-					'height': 'auto'
+					'width': 900,
+					'height': 'auto',
+					'onComplete':function(){
+						$('#fancybox-inner').scrollTop(0);
+					}
 				});
 			},
 			error: function(XMLHttpRequest, textStatus, errorThrown) {

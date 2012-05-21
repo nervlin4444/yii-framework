@@ -4,16 +4,19 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
 /**
  * CBehavior is a convenient base class for behavior classes.
+ *
+ * @property CComponent $owner The owner component that this behavior is attached to.
+ * @property boolean $enabled Whether this behavior is enabled.
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CBehavior.php 1678 2010-01-07 21:02:00Z qiang.xue $
+ * @version $Id: CBehavior.php 3515 2011-12-28 12:29:24Z mdomba $
  * @package system.base
- * @since 1.0.2
  */
 class CBehavior extends CComponent implements IBehavior
 {
@@ -38,7 +41,7 @@ class CBehavior extends CComponent implements IBehavior
 	 * The default implementation will set the {@link owner} property
 	 * and attach event handlers as declared in {@link events}.
 	 * Make sure you call the parent implementation if you override this method.
-	 * @param CComponent the component that this behavior is to be attached to.
+	 * @param CComponent $owner the component that this behavior is to be attached to.
 	 */
 	public function attach($owner)
 	{
@@ -52,7 +55,7 @@ class CBehavior extends CComponent implements IBehavior
 	 * The default implementation will unset the {@link owner} property
 	 * and detach event handlers declared in {@link events}.
 	 * Make sure you call the parent implementation if you override this method.
-	 * @param CComponent the component that this behavior is to be detached from.
+	 * @param CComponent $owner the component that this behavior is to be detached from.
 	 */
 	public function detach($owner)
 	{
@@ -78,10 +81,23 @@ class CBehavior extends CComponent implements IBehavior
 	}
 
 	/**
-	 * @param boolean whether this behavior is enabled
+	 * @param boolean $value whether this behavior is enabled
 	 */
 	public function setEnabled($value)
 	{
+		if($this->_enabled!=$value && $this->_owner)
+		{
+			if($value)
+			{
+				foreach($this->events() as $event=>$handler)
+					$this->_owner->attachEventHandler($event,array($this,$handler));
+			}
+			else
+			{
+				foreach($this->events() as $event=>$handler)
+					$this->_owner->detachEventHandler($event,array($this,$handler));
+			}
+		}
 		$this->_enabled=$value;
 	}
 }

@@ -4,14 +4,14 @@
  *
  * @author Sebastian Thierer <sebathi@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
 Yii::import('zii.widgets.jui.CJuiWidget');
 
 /**
- * CJuiSortable displays an accordion widget.
+ * CJuiSortable makes selected elements sortable by dragging with the mouse.
  *
  * CJuiSortable encapsulates the {@link http://jqueryui.com/demos/sortable/ JUI Sortable}
  * plugin.
@@ -40,7 +40,7 @@ Yii::import('zii.widgets.jui.CJuiWidget');
  * start of the js code definition and Yii will use this string as js code.
  *
  * @author Sebastian Thierer <sebathi@gmail.com>
- * @version $Id: CJuiSortable.php 2326 2010-08-20 17:02:07Z qiang.xue $
+ * @version $Id: CJuiSortable.php 3217 2011-05-12 23:59:50Z alexander.makarow $
  * @package zii.widgets.jui
  * @since 1.1
  */
@@ -69,7 +69,10 @@ class CJuiSortable extends CJuiWidget
 	public function run()
 	{
 		$id=$this->getId();
-		$this->htmlOptions['id']=$id;
+		if (isset($this->htmlOptions['id']))
+			$id = $this->htmlOptions['id'];
+		else
+			$this->htmlOptions['id']=$id;
 
 		$options=empty($this->options) ? '' : CJavaScript::encode($this->options);
 		Yii::app()->getClientScript()->registerScript(__CLASS__.'#'.$id,"jQuery('#{$id}').sortable({$options});");

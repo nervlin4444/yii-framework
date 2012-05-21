@@ -6,7 +6,7 @@
  * @author Christophe Boulain <Christophe.Boulain@gmail.com>
  * @author Wei Zhuo <weizhuo[at]gmail[dot]com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -16,18 +16,17 @@
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @author Christophe Boulain <Christophe.Boulain@gmail.com>
  * @author Wei Zhuo <weizhuo[at]gmail[dot]com>
- * @version $Id: CMssqlCommandBuilder.php 2387 2010-08-30 21:41:43Z qiang.xue $
+ * @version $Id: CMssqlCommandBuilder.php 3515 2011-12-28 12:29:24Z mdomba $
  * @package system.db.schema.mssql
- * @since 1.0.4
  */
 class CMssqlCommandBuilder extends CDbCommandBuilder
 {
 	/**
 	 * Creates a COUNT(*) command for a single table.
 	 * Override parent implementation to remove the order clause of criteria if it exists
-	 * @param CDbTableSchema the table metadata
-	 * @param CDbCriteria the query criteria
-	 * @param string the alias name of the primary table. Defaults to 't'.
+	 * @param CDbTableSchema $table the table metadata
+	 * @param CDbCriteria $criteria the query criteria
+	 * @param string $alias the alias name of the primary table. Defaults to 't'.
 	 * @return CDbCommand query command.
 	 */
 	public function createCountCommand($table,$criteria,$alias='t')
@@ -39,9 +38,9 @@ class CMssqlCommandBuilder extends CDbCommandBuilder
 	/**
 	 * Creates a SELECT command for a single table.
 	 * Override parent implementation to check if an orderby clause if specified when querying with an offset
-	 * @param CDbTableSchema the table metadata
-	 * @param CDbCriteria the query criteria
-	 * @param string the alias name of the primary table. Defaults to 't'.
+	 * @param CDbTableSchema $table the table metadata
+	 * @param CDbCriteria $criteria the query criteria
+	 * @param string $alias the alias name of the primary table. Defaults to 't'.
 	 * @return CDbCommand query command.
 	 */
 	public function createFindCommand($table,$criteria,$alias='t')
@@ -54,9 +53,9 @@ class CMssqlCommandBuilder extends CDbCommandBuilder
 	/**
 	 * Creates an UPDATE command.
 	 * Override parent implementation because mssql don't want to update an identity column
-	 * @param CDbTableSchema the table metadata
-	 * @param array list of columns to be updated (name=>value)
-	 * @param CDbCriteria the query criteria
+	 * @param CDbTableSchema $table the table metadata
+	 * @param array $data list of columns to be updated (name=>value)
+	 * @param CDbCriteria $criteria the query criteria
 	 * @return CDbCommand update command.
 	 */
 	public function createUpdateCommand($table,$data,$criteria)
@@ -73,7 +72,11 @@ class CMssqlCommandBuilder extends CDbCommandBuilder
 				if ($table->sequenceName !== null && $column->isPrimaryKey === true) continue;
 				if ($column->dbType === 'timestamp') continue;
 				if($value instanceof CDbExpression)
+				{
 					$fields[]=$column->rawName.'='.$value->expression;
+					foreach($value->params as $n=>$v)
+						$values[$n]=$v;
+				}
 				else if($bindByPosition)
 				{
 					$fields[]=$column->rawName.'=?';
@@ -105,8 +108,8 @@ class CMssqlCommandBuilder extends CDbCommandBuilder
 	/**
 	 * Creates a DELETE command.
 	 * Override parent implementation to check if an orderby clause if specified when querying with an offset
-	 * @param CDbTableSchema the table metadata
-	 * @param CDbCriteria the query criteria
+	 * @param CDbTableSchema $table the table metadata
+	 * @param CDbCriteria $criteria the query criteria
 	 * @return CDbCommand delete command.
 	 */
 	public function createDeleteCommand($table,$criteria)
@@ -118,9 +121,9 @@ class CMssqlCommandBuilder extends CDbCommandBuilder
 	/**
 	 * Creates an UPDATE command that increments/decrements certain columns.
 	 * Override parent implementation to check if an orderby clause if specified when querying with an offset
-	 * @param CDbTableSchema the table metadata
-	 * @param CDbCriteria the query criteria
-	 * @param array counters to be updated (counter increments/decrements indexed by column names.)
+	 * @param CDbTableSchema $table the table metadata
+	 * @param CDbCriteria $counters the query criteria
+	 * @param array $criteria counters to be updated (counter increments/decrements indexed by column names.)
 	 * @return CDbCommand the created command
 	 * @throws CException if no counter is specified
 	 */
@@ -166,9 +169,9 @@ class CMssqlCommandBuilder extends CDbCommandBuilder
 	 * No clauses should follow the ORDER BY clause, e.g. no COMPUTE or FOR clauses.
 	 * </li>
 	 *
-	 * @param string SQL query string.
-	 * @param integer maximum number of rows, -1 to ignore limit.
-	 * @param integer row offset, -1 to ignore offset.
+	 * @param string $sql SQL query string.
+	 * @param integer $limit maximum number of rows, -1 to ignore limit.
+	 * @param integer $offset row offset, -1 to ignore offset.
 	 * @return string SQL with limit and offset.
 	 *
 	 * @author Wei Zhuo <weizhuo[at]gmail[dot]com>
@@ -187,9 +190,9 @@ class CMssqlCommandBuilder extends CDbCommandBuilder
 	/**
 	 * Rewrite sql to apply $limit > and $offset > 0 for MSSQL database.
 	 * See http://troels.arvin.dk/db/rdbms/#select-limit-offset
-	 * @param string sql query
-	 * @param integer $limit > 0
-	 * @param integer $offset > 0
+	 * @param string $sql sql query
+	 * @param integer $limit $limit > 0
+	 * @param integer $offset $offset > 0
 	 * @return sql modified sql query applied with limit and offset.
 	 *
 	 * @author Wei Zhuo <weizhuo[at]gmail[dot]com>
@@ -199,17 +202,16 @@ class CMssqlCommandBuilder extends CDbCommandBuilder
 		$fetch = $limit+$offset;
 		$sql = preg_replace('/^([\s(])*SELECT( DISTINCT)?(?!\s*TOP\s*\()/i',"\\1SELECT\\2 TOP $fetch", $sql);
 		$ordering = $this->findOrdering($sql);
-
-		$orginalOrdering = $this->joinOrdering($ordering);
-		$reverseOrdering = $this->joinOrdering($this->reverseDirection($ordering));
-		$sql = "SELECT * FROM (SELECT TOP {$limit} * FROM ($sql) as [__inner top table__] {$reverseOrdering}) as [__outer top table__] {$orginalOrdering}";
+		$orginalOrdering = $this->joinOrdering($ordering, '[__outer__]');
+		$reverseOrdering = $this->joinOrdering($this->reverseDirection($ordering), '[__inner__]');
+		$sql = "SELECT * FROM (SELECT TOP {$limit} * FROM ($sql) as [__inner__] {$reverseOrdering}) as [__outer__] {$orginalOrdering}";
 		return $sql;
 	}
 
 	/**
 	 * Base on simplified syntax http://msdn2.microsoft.com/en-us/library/aa259187(SQL.80).aspx
 	 *
-	 * @param string $sql
+	 * @param string $sql $sql
 	 * @return array ordering expression as key and ordering direction as value
 	 *
 	 * @author Wei Zhuo <weizhuo[at]gmail[dot]com>
@@ -231,7 +233,14 @@ class CMssqlCommandBuilder extends CDbCommandBuilder
 				{
 					if(count($subs) > 1 && count($subs[2]) > 0)
 					{
-						$ordering[$subs[1][0]] = $subs[2][0];
+						$name='';
+						foreach(explode('.', $subs[1][0]) as $p)
+						{
+							if($name!=='')
+								$name.='.';
+							$name.='[' . trim($p, '[]') . ']';
+						}
+						$ordering[$name] = $subs[2][0];
 					}
 					//else what?
 				}
@@ -239,28 +248,44 @@ class CMssqlCommandBuilder extends CDbCommandBuilder
 					$ordering[trim($part)] = 'ASC';
 			}
 		}
+
+		// replacing column names with their alias names
+		foreach($ordering as $name => $direction)
+		{
+			$matches = array();
+			$pattern = '/\s+'.str_replace(array('[',']'), array('\[','\]'), $name).'\s+AS\s+(\[[^\]]+\])/i';
+			preg_match($pattern, $sql, $matches);
+			if(isset($matches[1]))
+			{
+				$ordering[$matches[1]] = $ordering[$name];
+				unset($ordering[$name]);
+			}
+		}
+
 		return $ordering;
 	}
 
 	/**
-	 * @param array ordering obtained from findOrdering()
+	 * @param array $orders ordering obtained from findOrdering()
+	 * @param string $newPrefix new table prefix to the ordering columns
 	 * @return string concat the orderings
 	 *
 	 * @author Wei Zhuo <weizhuo[at]gmail[dot]com>
 	 */
-	protected function joinOrdering($orders)
+	protected function joinOrdering($orders, $newPrefix)
 	{
 		if(count($orders)>0)
 		{
 			$str=array();
 			foreach($orders as $column => $direction)
 				$str[] = $column.' '.$direction;
-			return 'ORDER BY '.implode(', ', $str);
+			$orderBy = 'ORDER BY '.implode(', ', $str);
+			return preg_replace('/\s+\[[^\]]+\]\.(\[[^\]]+\])/i', ' '.$newPrefix.'.\1', $orderBy);
 		}
 	}
 
 	/**
-	 * @param array original ordering
+	 * @param array $orders original ordering
 	 * @return array ordering with reversed direction.
 	 *
 	 * @author Wei Zhuo <weizhuo[at]gmail[dot]com>
@@ -277,8 +302,8 @@ class CMssqlCommandBuilder extends CDbCommandBuilder
 	 * Checks if the criteria has an order by clause when using offset/limit.
 	 * Override parent implementation to check if an orderby clause if specified when querying with an offset
 	 * If not, order it by pk.
-	 * @param CMssqlTableSchema table schema
-	 * @param CDbCriteria criteria
+	 * @param CMssqlTableSchema $table table schema
+	 * @param CDbCriteria $criteria criteria
 	 * @return CDbCrireria the modified criteria
 	 */
 	protected function checkCriteria($table, $criteria)
@@ -288,5 +313,25 @@ class CMssqlCommandBuilder extends CDbCommandBuilder
 			$criteria->order=is_array($table->primaryKey)?implode(',',$table->primaryKey):$table->primaryKey;
 		}
 		return $criteria;
+	}
+
+	/**
+	 * Generates the expression for selecting rows with specified composite key values.
+	 * @param CDbTableSchema $table the table schema
+	 * @param array $values list of primary key values to be selected within
+	 * @param string $prefix column prefix (ended with dot)
+	 * @return string the expression for selection
+	 */
+	protected function createCompositeInCondition($table,$values,$prefix)
+	{
+		$vs=array();
+		foreach($values as $value)
+		{
+			$c=array();
+			foreach($value as $k=>$v)
+				$c[]=$prefix.$table->columns[$k]->rawName.'='.$v;
+			$vs[]='('.implode(' AND ',$c).')';
+		}
+		return '('.implode(' OR ',$vs).')';
 	}
 }

@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -20,8 +20,10 @@
  * is NOT volatile. If you want to use {@link CDbCache} as storage medium, use {@link CDbHttpSession}
  * is a better choice.
  *
+ * @property boolean $useCustomStorage Whether to use custom storage.
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CCacheHttpSession.php 1678 2010-01-07 21:02:00Z qiang.xue $
+ * @version $Id: CCacheHttpSession.php 3426 2011-10-25 00:01:09Z alexander.makarow $
  * @package system.web
  * @since 1.0
  */
@@ -67,7 +69,7 @@ class CCacheHttpSession extends CHttpSession
 	/**
 	 * Session read handler.
 	 * Do not call this method directly.
-	 * @param string session ID
+	 * @param string $id session ID
 	 * @return string the session data
 	 */
 	public function readSession($id)
@@ -79,8 +81,8 @@ class CCacheHttpSession extends CHttpSession
 	/**
 	 * Session write handler.
 	 * Do not call this method directly.
-	 * @param string session ID
-	 * @param string session data
+	 * @param string $id session ID
+	 * @param string $data session data
 	 * @return boolean whether session write is successful
 	 */
 	public function writeSession($id,$data)
@@ -91,7 +93,7 @@ class CCacheHttpSession extends CHttpSession
 	/**
 	 * Session destroy handler.
 	 * Do not call this method directly.
-	 * @param string session ID
+	 * @param string $id session ID
 	 * @return boolean whether session is destroyed successfully
 	 */
 	public function destroySession($id)
@@ -101,7 +103,7 @@ class CCacheHttpSession extends CHttpSession
 
 	/**
 	 * Generates a unique key used for storing session data in cache.
-	 * @param string session variable name
+	 * @param string $id session variable name
 	 * @return string a safe cache key associated with the session variable name
 	 */
 	protected function calculateKey($id)

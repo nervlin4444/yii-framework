@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -30,17 +30,16 @@
  * will be returned.
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CChoiceFormat.php 1743 2010-01-22 18:53:15Z qiang.xue $
+ * @version $Id: CChoiceFormat.php 3515 2011-12-28 12:29:24Z mdomba $
  * @package system.i18n
- * @since 1.0.2
  */
 class CChoiceFormat
 {
 	/**
 	 * Formats a message according to the specified number value.
-	 * @param string the candidate messages in the format of 'expr1#message1|expr2#message2|expr3#message3'.
+	 * @param string $messages the candidate messages in the format of 'expr1#message1|expr2#message2|expr3#message3'.
 	 * See {@link CChoiceFormat} for more details.
-	 * @param mixed the number value
+	 * @param mixed $number the number value
 	 * @return string the selected message
 	 */
 	public static function format($messages, $number)
@@ -52,10 +51,9 @@ class CChoiceFormat
 		{
 			$expression=$matches[1][$i];
 			$message=$matches[2][$i];
-			$intval=(int)$expression;
-			if($expression==="$intval")
+			if($expression===(string)(int)$expression)
 			{
-				if($intval==$number)
+				if($expression==$number)
 					return $message;
 			}
 			else if(self::evaluate(str_replace('n','$n',$expression),$number))
@@ -66,8 +64,8 @@ class CChoiceFormat
 
 	/**
 	 * Evaluates a PHP expression with the given number value.
-	 * @param string the PHP expression
-	 * @param mixed the number value
+	 * @param string $expression the PHP expression
+	 * @param mixed $n the number value
 	 * @return boolean the expression result
 	 */
 	protected static function evaluate($expression,$n)

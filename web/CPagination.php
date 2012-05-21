@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -40,18 +40,28 @@
  *
  * View:
  * <pre>
- * <?foreach($models as $model):?>
+ * <?php foreach($models as $model): ?>
  *     // display a model
- * <?endforeach?>
+ * <?php endforeach; ?>
  *
  * // display pagination
- * <?$this->widget('CLinkPager', array(
+ * <?php $this->widget('CLinkPager', array(
  *     'pages' => $pages,
- * ))?>
+ * )) ?>
  * </pre>
  *
+ * @property integer $pageSize Number of items in each page. Defaults to 10.
+ * @property integer $itemCount Total number of items. Defaults to 0.
+ * @property integer $pageCount Number of pages.
+ * @property integer $currentPage The zero-based index of the current page. Defaults to 0.
+ * @property integer $offset The offset of the data. This may be used to set the
+ * OFFSET value for a SQL statement for fetching the current page of data.
+ * @property integer $limit The limit of the data. This may be used to set the
+ * LIMIT value for a SQL statement for fetching the current page of data.
+ * This returns the same value as {@link pageSize}.
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CPagination.php 2313 2010-08-10 02:52:27Z qiang.xue $
+ * @version $Id: CPagination.php 3515 2011-12-28 12:29:24Z mdomba $
  * @package system.web
  * @since 1.0
  */
@@ -71,9 +81,8 @@ class CPagination extends CComponent
 	 */
 	public $route='';
 	/**
-	 * @var array the additional GET parameters (name=>value) that should be used when generating pagination URLs.
+	 * @var array of parameters (name=>value) that should be used instead of GET when generating pagination URLs.
 	 * Defaults to null, meaning using the currently available GET parameters.
-	 * @since 1.0.9
 	 */
 	public $params;
 	/**
@@ -94,8 +103,7 @@ class CPagination extends CComponent
 
 	/**
 	 * Constructor.
-	 * @param integer total number of items.
-	 * @since 1.0.1
+	 * @param integer $itemCount total number of items.
 	 */
 	public function __construct($itemCount=0)
 	{
@@ -111,7 +119,7 @@ class CPagination extends CComponent
 	}
 
 	/**
-	 * @param integer number of items in each page
+	 * @param integer $value number of items in each page
 	 */
 	public function setPageSize($value)
 	{
@@ -128,7 +136,7 @@ class CPagination extends CComponent
 	}
 
 	/**
-	 * @param integer total number of items.
+	 * @param integer $value total number of items.
 	 */
 	public function setItemCount($value)
 	{
@@ -145,7 +153,7 @@ class CPagination extends CComponent
 	}
 
 	/**
-	 * @param boolean whether to recalculate the current page based on the page size and item count.
+	 * @param boolean $recalculate whether to recalculate the current page based on the page size and item count.
 	 * @return integer the zero-based index of the current page. Defaults to 0.
 	 */
 	public function getCurrentPage($recalculate=true)
@@ -171,7 +179,7 @@ class CPagination extends CComponent
 	}
 
 	/**
-	 * @param integer the zero-based index of the current page.
+	 * @param integer $value the zero-based index of the current page.
 	 */
 	public function setCurrentPage($value)
 	{
@@ -186,8 +194,8 @@ class CPagination extends CComponent
 	 * the controller's createUrl method with the page information.
 	 * You may override this method if your URL scheme is not the same as
 	 * the one supported by the controller's createUrl method.
-	 * @param CController the controller that will create the actual URL
-	 * @param integer the page that the URL should point to. This is a zero-based index.
+	 * @param CController $controller the controller that will create the actual URL
+	 * @param integer $page the page that the URL should point to. This is a zero-based index.
 	 * @return string the created URL
 	 */
 	public function createPageUrl($controller,$page)
@@ -202,13 +210,12 @@ class CPagination extends CComponent
 
 	/**
 	 * Applies LIMIT and OFFSET to the specified query criteria.
-	 * @param CDbCriteria the query criteria that should be applied with the limit
-	 * @since 1.0.1
+	 * @param CDbCriteria $criteria the query criteria that should be applied with the limit
 	 */
 	public function applyLimit($criteria)
 	{
-		$criteria->limit=$this->pageSize;
-		$criteria->offset=$this->currentPage*$this->pageSize;
+		$criteria->limit=$this->getLimit();
+		$criteria->offset=$this->getOffset();
 	}
 
 	/**
@@ -218,7 +225,7 @@ class CPagination extends CComponent
 	 */
 	public function getOffset()
 	{
-		return $this->currentPage*$this->pageSize;
+		return $this->getCurrentPage()*$this->getPageSize();
 	}
 
 	/**
@@ -229,6 +236,6 @@ class CPagination extends CComponent
 	 */
 	public function getLimit()
 	{
-		return $this->pageSize;
+		return $this->getPageSize();
 	}
 }

@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -20,8 +20,10 @@
  * call {@link generateWsdl} or {@link renderWsdl}. To process the web service
  * requests, call {@link run}.
  *
+ * @property string $methodName The currently requested method name. Empty if no method is being requested.
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CWebService.php 1678 2010-01-07 21:02:00Z qiang.xue $
+ * @version $Id: CWebService.php 3515 2011-12-28 12:29:24Z mdomba $
  * @package system.web.services
  * @since 1.0
  */
@@ -49,7 +51,6 @@ class CWebService extends CComponent
 	 * @var string the ID of the cache application component that is used to cache the generated WSDL.
 	 * Defaults to 'cache' which refers to the primary cache application component.
 	 * Set this property to false if you want to disable caching WSDL.
-	 * @since 1.0.10
 	 */
 	public $cacheID='cache';
 	/**
@@ -82,9 +83,9 @@ class CWebService extends CComponent
 
 	/**
 	 * Constructor.
-	 * @param mixed the web service provider class name or object
-	 * @param string the URL for WSDL. This is required by {@link run()}.
-	 * @param string the URL for the Web service. This is required by {@link generateWsdl()} and {@link renderWsdl()}.
+	 * @param mixed $provider the web service provider class name or object
+	 * @param string $wsdlUrl the URL for WSDL. This is required by {@link run()}.
+	 * @param string $serviceUrl the URL for the Web service. This is required by {@link generateWsdl()} and {@link renderWsdl()}.
 	 */
 	public function __construct($provider,$wsdlUrl,$serviceUrl)
 	{
@@ -95,7 +96,7 @@ class CWebService extends CComponent
 
 	/**
 	 * The PHP error handler.
-	 * @param CErrorEvent the PHP error event
+	 * @param CErrorEvent $event the PHP error event
 	 */
 	public function handleError($event)
 	{
@@ -118,7 +119,7 @@ class CWebService extends CComponent
 	{
 		$wsdl=$this->generateWsdl();
 		header('Content-Type: text/xml;charset='.$this->encoding);
-		header('Content-Length: '.strlen($wsdl));
+		header('Content-Length: '.(function_exists('mb_strlen') ? mb_strlen($wsdl,'8bit') : strlen($wsdl)));
 		echo $wsdl;
 	}
 
@@ -181,18 +182,21 @@ class CWebService extends CComponent
 		}
 		catch(Exception $e)
 		{
-			if($e->getCode()===self::SOAP_ERROR) // a PHP error
-				$message=$e->getMessage();
-			else
+			if($e->getCode()!==self::SOAP_ERROR) // non-PHP error
 			{
-				$message=$e->getMessage().' ('.$e->getFile().':'.$e->getLine().')';
 				// only log for non-PHP-error case because application's error handler already logs it
 				// php <5.2 doesn't support string conversion auto-magically
 				Yii::log($e->__toString(),CLogger::LEVEL_ERROR,'application');
 			}
+			$message=$e->getMessage();
 			if(YII_DEBUG)
-				$message.="\n".$e->getTraceAsString();
+				$message.=' ('.$e->getFile().':'.$e->getLine().")\n".$e->getTraceAsString();
+
+			// We need to end application explicitly because of
+			// http://bugs.php.net/bug.php?id=49513
+			Yii::app()->onEndRequest(new CEvent($this));
 			$server->fault(get_class($e),$message);
+			exit(1);
 		}
 	}
 
@@ -245,9 +249,8 @@ class CWebService extends CComponent
  * CSoapObjectWrapper is a wrapper class internally used when SoapServer::setObject() is not defined.
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CWebService.php 1678 2010-01-07 21:02:00Z qiang.xue $
+ * @version $Id: CWebService.php 3515 2011-12-28 12:29:24Z mdomba $
  * @package system.web.services
- * @since 1.0.5
  */
 class CSoapObjectWrapper
 {
@@ -258,7 +261,7 @@ class CSoapObjectWrapper
 
 	/**
 	 * Constructor.
-	 * @param object the service provider
+	 * @param object $object the service provider
 	 */
 	public function __construct($object)
 	{
@@ -268,8 +271,8 @@ class CSoapObjectWrapper
 	/**
 	 * PHP __call magic method.
 	 * This method calls the service provider to execute the actual logic.
-	 * @param string method name
-	 * @param array method arguments
+	 * @param string $name method name
+	 * @param array $arguments method arguments
 	 * @return mixed method return value
 	 */
 	public function __call($name,$arguments)

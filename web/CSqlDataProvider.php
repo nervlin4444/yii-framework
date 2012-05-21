@@ -14,7 +14,6 @@
  * $count=Yii::app()->db->createCommand('SELECT COUNT(*) FROM tbl_user')->queryScalar();
  * $sql='SELECT * FROM tbl_user';
  * $dataProvider=new CSqlDataProvider($sql, array(
- *     'id'=>'user',
  *     'totalItemCount'=>$count,
  *     'sort'=>array(
  *         'attributes'=>array(
@@ -33,7 +32,7 @@
  * you must configure {@link sort} property so that the provider knows which columns can be sorted.
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CSqlDataProvider.php 2317 2010-08-12 17:24:06Z qiang.xue $
+ * @version $Id: CSqlDataProvider.php 2820 2011-01-06 17:15:56Z mdomba $
  * @package system.web
  * @since 1.1.4
  */
@@ -59,8 +58,8 @@ class CSqlDataProvider extends CDataProvider
 
 	/**
 	 * Constructor.
-	 * @param string the SQL statement to be used for fetching data rows.
-	 * @param array configuration (name=>value) to be applied as the initial property values of this class.
+	 * @param string $sql the SQL statement to be used for fetching data rows.
+	 * @param array $config configuration (name=>value) to be applied as the initial property values of this class.
 	 */
 	public function __construct($sql,$config=array())
 	{
@@ -84,7 +83,7 @@ class CSqlDataProvider extends CDataProvider
 			$order=$sort->getOrderBy();
 			if(!empty($order))
 			{
-				if(preg_match('/\s+order\s+by\s+/i',$sql))
+				if(preg_match('/\s+order\s+by\s+[\w\s,]+$/i',$sql))
 					$sql.=', '.$order;
 				else
 					$sql.=' ORDER BY '.$order;

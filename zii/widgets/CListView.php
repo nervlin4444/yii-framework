@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -50,7 +50,7 @@ Yii::import('zii.widgets.CBaseListView');
  * By doing so, a list of hyperlinks that can sort the data will be displayed.
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CListView.php 2326 2010-08-20 17:02:07Z qiang.xue $
+ * @version $Id: CListView.php 3286 2011-06-16 17:34:34Z qiang.xue $
  * @package zii.widgets
  * @since 1.1
  */
@@ -71,13 +71,18 @@ class CListView extends CBaseListView
 	 */
 	public $itemView;
 	/**
+	 * @var string the HTML code to be displayed between any two consecutive items.
+	 * @since 1.1.7
+	 */
+	public $separator;
+	/**
 	 * @var array additional data to be passed to {@link itemView} when rendering each data item.
 	 * This array will be extracted into local PHP variables that can be accessed in the {@link itemView}.
 	 */
 	public $viewData=array();
 	/**
 	 * @var array list of sortable attribute names. In order for an attribute to be sortable, it must also
-	 * appear as as a sortable attribute the {@link IDataProvider::sort} property of {@link dataProvider}.
+	 * appear as a sortable attribute in the {@link IDataProvider::sort} property of {@link dataProvider}.
 	 * @see enableSorting
 	 */
 	public $sortableAttributes;
@@ -114,10 +119,22 @@ class CListView extends CBaseListView
 	 */
 	public $ajaxUpdate;
 	/**
+	 * @var string the jQuery selector of the HTML elements that may trigger AJAX updates when they are clicked.
+	 * If not set, the pagination links and the sorting links will trigger AJAX updates.
+	 * @since 1.1.7
+	 */
+	public $updateSelector;
+	/**
 	 * @var string the name of the GET variable that indicates the request is an AJAX request triggered
 	 * by this widget. Defaults to 'ajax'. This is effective only when {@link ajaxUpdate} is not false.
 	 */
 	public $ajaxVar='ajax';
+	/**
+	 * @var mixed the URL for the AJAX requests should be sent to. {@link CHtml::normalizeUrl()} will be
+	 * called on this property. If not set, the current page URL will be used for AJAX requests.
+	 * @since 1.1.8
+	 */
+	public $ajaxUrl;
 	/**
 	 * @var string a javascript function that will be invoked before an AJAX update occurs.
 	 * The function signature is <code>function(id)</code> where 'id' refers to the ID of the list view.
@@ -187,6 +204,10 @@ class CListView extends CBaseListView
 			'loadingClass'=>$this->loadingCssClass,
 			'sorterClass'=>$this->sorterCssClass,
 		);
+		if($this->ajaxUrl!==null)
+			$options['url']=CHtml::normalizeUrl($this->ajaxUrl);
+		if($this->updateSelector!==null)
+			$options['updateSelector']=$this->updateSelector;
 		if($this->beforeAjaxUpdate!==null)
 			$options['beforeAjaxUpdate']=(strpos($this->beforeAjaxUpdate,'js:')!==0 ? 'js:' : '').$this->beforeAjaxUpdate;
 		if($this->afterAjaxUpdate!==null)
@@ -196,7 +217,7 @@ class CListView extends CBaseListView
 		$cs=Yii::app()->getClientScript();
 		$cs->registerCoreScript('jquery');
 		$cs->registerCoreScript('bbq');
-		$cs->registerScriptFile($this->baseScriptUrl.'/jquery.yiilistview.js');
+		$cs->registerScriptFile($this->baseScriptUrl.'/jquery.yiilistview.js',CClientScript::POS_END);
 		$cs->registerScript(__CLASS__.'#'.$id,"jQuery('#$id').yiiListView($options);");
 	}
 
@@ -207,10 +228,11 @@ class CListView extends CBaseListView
 	{
 		echo CHtml::openTag($this->itemsTagName,array('class'=>$this->itemsCssClass))."\n";
 		$data=$this->dataProvider->getData();
-		if(count($data)>0)
+		if(($n=count($data))>0)
 		{
 			$owner=$this->getOwner();
 			$render=$owner instanceof CController ? 'renderPartial' : 'render';
+			$j=0;
 			foreach($data as $i=>$item)
 			{
 				$data=$this->viewData;
@@ -218,6 +240,8 @@ class CListView extends CBaseListView
 				$data['data']=$item;
 				$data['widget']=$this;
 				$owner->$render($this->itemView,$data);
+				if($j++ < $n-1)
+					echo $this->separator;
 			}
 		}
 		else

@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -42,7 +42,7 @@
  * <pre>
  * array(
  *     'articles'=>'article/list',
- *     'article/&lt;id:\d+&gt;/*'=>'article/read',
+ *     'article/<id:\d+>/*'=>'article/read',
  * )
  * </pre>
  * Two rules are specified in the above:
@@ -56,14 +56,14 @@
  *   and vice versa applies when constructing such a URL.</li>
  * </ul>
  *
- * Starting from version 1.0.5, the route part may contain references to named parameters defined
- * in the pattern part. This allows a rule to be applied to different routes based on matching criteria.
+ * The route part may contain references to named parameters defined in the pattern part.
+ * This allows a rule to be applied to different routes based on matching criteria.
  * For example,
  * <pre>
  * array(
- *      '&lt;_c:(post|comment)&gt;/&lt;id:\d+&gt;/&lt;_a:(create|update|delete)&gt;'=>'&lt;_c&gt;/&lt;_a&gt;',
- *      '&lt;_c:(post|comment)&gt;/&lt;id:\d+&gt;'=>'&lt;_a&gt;/view',
- *      '&lt;_c:(post|comment)&gt;s/*'=>'&lt;_a>/list',
+ *      '<_c:(post|comment)>/<id:\d+>/<_a:(create|update|delete)>'=>'<_c>/<_a>',
+ *      '<_c:(post|comment)>/<id:\d+>'=>'<_c>/view',
+ *      '<_c:(post|comment)>s/*'=>'<_c>/list',
  * )
  * </pre>
  * In the above, we use two named parameters '<_c>' and '<_a>' in the route part. The '<_c>'
@@ -75,24 +75,50 @@
  * And given the route 'post/list' and GET parameter 'page' being 2, we should get a URL
  * '/index.php/posts/page/2'.
  *
- * Starting from version 1.0.11, it is also possible to include hostname into the rules
- * for parsing and creating URLs. One may extract part of the hostname to be a GET parameter.
+ * It is also possible to include hostname into the rules for parsing and creating URLs.
+ * One may extract part of the hostname to be a GET parameter.
  * For example, the URL <code>http://admin.example.com/en/profile</code> may be parsed into GET parameters
  * <code>user=admin</code> and <code>lang=en</code>. On the other hand, rules with hostname may also be used to
- * create URLs with paratermized hostnames.
+ * create URLs with parameterized hostnames.
  *
  * In order to use parameterized hostnames, simply declare URL rules with host info, e.g.:
  * <pre>
  * array(
- *     'http://&lt;user:\w+&gt;.example.com/&lt;lang:\w+&gt;/profile' => 'user/profile',
+ *     'http://<user:\w+>.example.com/<lang:\w+>/profile' => 'user/profile',
  * )
  * </pre>
+ *
+ * Starting from version 1.1.8, one can write custom URL rule classes and use them for one or several URL rules.
+ * For example,
+ * <pre>
+ * array(
+ *   // a standard rule
+ *   '<action:(login|logout)>' => 'site/<action>',
+ *   // a custom rule using data in DB
+ *   array(
+ *     'class' => 'application.components.MyUrlRule',
+ *     'connectionID' => 'db',
+ *   ),
+ * )
+ * </pre>
+ * Please note that the custom URL rule class should extend from {@link CBaseUrlRule} and
+ * implement the following two methods,
+ * <ul>
+ *    <li>{@link CBaseUrlRule::createUrl()}</li>
+ *    <li>{@link CBaseUrlRule::parseUrl()}</li>
+ * </ul>
  *
  * CUrlManager is a default application component that may be accessed via
  * {@link CWebApplication::getUrlManager()}.
  *
+ * @property string $baseUrl The base URL of the application (the part after host name and before query string).
+ * If {@link showScriptName} is true, it will include the script name part.
+ * Otherwise, it will not, and the ending slashes are stripped off.
+ * @property string $urlFormat The URL format. Defaults to 'path'. Valid values include 'path' and 'get'.
+ * Please refer to the guide for more details about the difference between these two formats.
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CUrlManager.php 2303 2010-08-05 12:18:06Z qiang.xue $
+ * @version $Id: CUrlManager.php 3515 2011-12-28 12:29:24Z mdomba $
  * @package system.web
  * @since 1.0
  */
@@ -120,7 +146,6 @@ class CUrlManager extends CApplicationComponent
 	 * This property is only effective when {@link urlFormat} is 'path' and is mainly used when
 	 * creating URLs. When it is true, GET parameters will be appended to the path info and
 	 * separate from each other using slashes. If this is false, GET parameters will be in query part.
-	 * @since 1.0.3
 	 */
 	public $appendParams=true;
 	/**
@@ -134,7 +159,6 @@ class CUrlManager extends CApplicationComponent
 	 * controller mapping ({@link CWebApplication::controllerMap}) and action mapping
 	 * ({@link CController::actions}). Also, the directory names for organizing controllers should
 	 * be in lower case.
-	 * @since 1.0.1
 	 */
 	public $caseSensitive=true;
 	/**
@@ -150,7 +174,6 @@ class CUrlManager extends CApplicationComponent
 	 * @var string the ID of the cache application component that is used to cache the parsed URL rules.
 	 * Defaults to 'cache' which refers to the primary cache application component.
 	 * Set this property to false if you want to disable caching URL rules.
-	 * @since 1.0.3
 	 */
 	public $cacheID='cache';
 	/**
@@ -159,9 +182,16 @@ class CUrlManager extends CApplicationComponent
 	 * If it is set true, then an incoming URL must match one of the {@link rules URL rules}.
 	 * Otherwise, it will be treated as an invalid request and trigger a 404 HTTP exception.
 	 * Defaults to false.
-	 * @since 1.0.6
 	 */
 	public $useStrictParsing=false;
+	/**
+	 * @var string the class name or path alias for the URL rule instances. Defaults to 'CUrlRule'.
+	 * If you change this to something else, please make sure that the new class must extend from
+	 * {@link CBaseUrlRule} and have the same constructor signature as {@link CUrlRule}.
+	 * It must also be serializable and autoloadable.
+	 * @since 1.1.8
+	 */
+	public $urlRuleClass='CUrlRule';
 
 	private $_urlFormat=self::GET_FORMAT;
 	private $_rules=array();
@@ -203,43 +233,57 @@ class CUrlManager extends CApplicationComponent
 	 * Adds new URL rules.
 	 * In order to make the new rules effective, this method must be called BEFORE
 	 * {@link CWebApplication::processRequest}.
-	 * @param array new URL rules (pattern=>route).
+	 * @param array $rules new URL rules (pattern=>route).
+	 * @param boolean $append whether the new URL rules should be appended to the existing ones. If false,
+	 * they will be inserted at the beginning.
 	 * @since 1.1.4
 	 */
-	public function addRules($rules)
+	public function addRules($rules, $append=true)
 	{
-		foreach($rules as $pattern=>$route)
-			$this->_rules[]=$this->createUrlRule($route,$pattern);
+		if ($append)
+		{
+			foreach($rules as $pattern=>$route)
+				$this->_rules[]=$this->createUrlRule($route,$pattern);
+		}
+		else
+		{
+			foreach($rules as $pattern=>$route)
+				array_unshift($this->_rules, $this->createUrlRule($route,$pattern));
+		}
 	}
 
 	/**
 	 * Creates a URL rule instance.
 	 * The default implementation returns a CUrlRule object.
-	 * @param string the pattern part of the rule
-	 * @param mixed the route part of the rule. This could be a string or an array
+	 * @param mixed $route the route part of the rule. This could be a string or an array
+	 * @param string $pattern the pattern part of the rule
 	 * @return CUrlRule the URL rule instance
 	 * @since 1.1.0
 	 */
 	protected function createUrlRule($route,$pattern)
 	{
-		return new CUrlRule($route,$pattern);
+		if(is_array($route) && isset($route['class']))
+			return $route;
+		else
+			return new $this->urlRuleClass($route,$pattern);
 	}
 
 	/**
 	 * Constructs a URL.
-	 * @param string the controller and the action (e.g. article/read)
-	 * @param array list of GET parameters (name=>value). Both the name and value will be URL-encoded.
+	 * @param string $route the controller and the action (e.g. article/read)
+	 * @param array $params list of GET parameters (name=>value). Both the name and value will be URL-encoded.
 	 * If the name is '#', the corresponding value will be treated as an anchor
-	 * and will be appended at the end of the URL. This anchor feature has been available since version 1.0.1.
-	 * @param string the token separating name-value pairs in the URL. Defaults to '&'.
+	 * and will be appended at the end of the URL.
+	 * @param string $ampersand the token separating name-value pairs in the URL. Defaults to '&'.
 	 * @return string the constructed URL
 	 */
 	public function createUrl($route,$params=array(),$ampersand='&')
 	{
 		unset($params[$this->routeVar]);
-		foreach($params as &$param)
+		foreach($params as $i=>$param)
 			if($param===null)
-				$param='';
+				$params[$i]='';
+
 		if(isset($params['#']))
 		{
 			$anchor='#'.$params['#'];
@@ -248,19 +292,26 @@ class CUrlManager extends CApplicationComponent
 		else
 			$anchor='';
 		$route=trim($route,'/');
-		foreach($this->_rules as $rule)
+		foreach($this->_rules as $i=>$rule)
 		{
+			if(is_array($rule))
+				$this->_rules[$i]=$rule=Yii::createComponent($rule);
 			if(($url=$rule->createUrl($this,$route,$params,$ampersand))!==false)
-				return $rule->hasHostInfo ? $url.$anchor : $this->getBaseUrl().'/'.$url.$anchor;
+			{
+				if($rule->hasHostInfo)
+					return $url==='' ? '/'.$anchor : $url.$anchor;
+				else
+					return $this->getBaseUrl().'/'.$url.$anchor;
+			}
 		}
 		return $this->createUrlDefault($route,$params,$ampersand).$anchor;
 	}
 
 	/**
-	 * Contructs a URL based on default settings.
-	 * @param string the controller and the action (e.g. article/read)
-	 * @param array list of GET parameters
-	 * @param string the token separating name-value pairs in the URL.
+	 * Creates a URL based on default settings.
+	 * @param string $route the controller and the action (e.g. article/read)
+	 * @param array $params list of GET parameters
+	 * @param string $ampersand the token separating name-value pairs in the URL.
 	 * @return string the constructed URL
 	 */
 	protected function createUrlDefault($route,$params,$ampersand)
@@ -300,7 +351,7 @@ class CUrlManager extends CApplicationComponent
 
 	/**
 	 * Parses the user request.
-	 * @param CHttpRequest the request application component
+	 * @param CHttpRequest $request the request application component
 	 * @return string the route (controllerID/actionID) and perhaps GET parameters in path format.
 	 */
 	public function parseUrl($request)
@@ -309,8 +360,10 @@ class CUrlManager extends CApplicationComponent
 		{
 			$rawPathInfo=$request->getPathInfo();
 			$pathInfo=$this->removeUrlSuffix($rawPathInfo,$this->urlSuffix);
-			foreach($this->_rules as $rule)
+			foreach($this->_rules as $i=>$rule)
 			{
+				if(is_array($rule))
+					$this->_rules[$i]=$rule=Yii::createComponent($rule);
 				if(($r=$rule->parseUrl($this,$request,$pathInfo,$rawPathInfo))!==false)
 					return isset($_GET[$this->routeVar]) ? $_GET[$this->routeVar] : $r;
 			}
@@ -330,8 +383,7 @@ class CUrlManager extends CApplicationComponent
 
 	/**
 	 * Parses a path info into URL segments and saves them to $_GET and $_REQUEST.
-	 * @param string path info
-	 * @since 1.0.3
+	 * @param string $pathInfo path info
 	 */
 	public function parsePathInfo($pathInfo)
 	{
@@ -344,16 +396,19 @@ class CUrlManager extends CApplicationComponent
 			$key=$segs[$i];
 			if($key==='') continue;
 			$value=$segs[$i+1];
-			if(($pos=strpos($key,'['))!==false && ($pos2=strpos($key,']',$pos+1))!==false)
+			if(($pos=strpos($key,'['))!==false && ($m=preg_match_all('/\[(.*?)\]/',$key,$matches))>0)
 			{
 				$name=substr($key,0,$pos);
-				if($pos2===$pos+1)
-					$_REQUEST[$name][]=$_GET[$name][]=$value;
-				else
+				for($j=$m-1;$j>=0;--$j)
 				{
-					$key=substr($key,$pos+1,$pos2-$pos-1);
-					$_REQUEST[$name][$key]=$_GET[$name][$key]=$value;
+					if($matches[1][$j]==='')
+						$value=array($value);
+					else
+						$value=array($matches[1][$j]=>$value);
 				}
+				if(isset($_GET[$name]) && is_array($_GET[$name]))
+					$value=CMap::mergeArray($_GET[$name],$value);
+				$_REQUEST[$name]=$_GET[$name]=$value;
 			}
 			else
 				$_REQUEST[$key]=$_GET[$key]=$value;
@@ -362,12 +417,11 @@ class CUrlManager extends CApplicationComponent
 
 	/**
 	 * Creates a path info based on the given parameters.
-	 * @param array list of GET parameters
-	 * @param string the separator between name and value
-	 * @param string the separator between name-value pairs
-	 * @param string this is used internally.
+	 * @param array $params list of GET parameters
+	 * @param string $equal the separator between name and value
+	 * @param string $ampersand the separator between name-value pairs
+	 * @param string $key this is used internally.
 	 * @return string the created path info
-	 * @since 1.0.3
 	 */
 	public function createPathInfo($params,$equal,$ampersand, $key=null)
 	{
@@ -387,8 +441,8 @@ class CUrlManager extends CApplicationComponent
 
 	/**
 	 * Removes the URL suffix from path info.
-	 * @param string path info part in the URL
-	 * @param string the URL suffix to be removed
+	 * @param string $pathInfo path info part in the URL
+	 * @param string $urlSuffix the URL suffix to be removed
 	 * @return string path info with URL suffix removed.
 	 */
 	public function removeUrlSuffix($pathInfo,$urlSuffix)
@@ -400,6 +454,7 @@ class CUrlManager extends CApplicationComponent
 	}
 
 	/**
+	 * Returns the base URL of the application.
 	 * @return string the base URL of the application (the part after host name and before query string).
 	 * If {@link showScriptName} is true, it will include the script name part.
 	 * Otherwise, it will not, and the ending slashes are stripped off.
@@ -423,7 +478,7 @@ class CUrlManager extends CApplicationComponent
 	 * This method is provided in case the {@link baseUrl} cannot be determined automatically.
 	 * The ending slashes should be stripped off. And you are also responsible to remove the script name
 	 * if you set {@link showScriptName} to be false.
-	 * @param string the base URL of the application
+	 * @param string $value the base URL of the application
 	 * @since 1.1.1
 	 */
 	public function setBaseUrl($value)
@@ -432,6 +487,7 @@ class CUrlManager extends CApplicationComponent
 	}
 
 	/**
+	 * Returns the URL format.
 	 * @return string the URL format. Defaults to 'path'. Valid values include 'path' and 'get'.
 	 * Please refer to the guide for more details about the difference between these two formats.
 	 */
@@ -441,7 +497,8 @@ class CUrlManager extends CApplicationComponent
 	}
 
 	/**
-	 * @param string the URL format. It must be either 'path' or 'get'.
+	 * Sets the URL format.
+	 * @param string $value the URL format. It must be either 'path' or 'get'.
 	 */
 	public function setUrlFormat($value)
 	{
@@ -454,6 +511,43 @@ class CUrlManager extends CApplicationComponent
 
 
 /**
+ * CBaseUrlRule is the base class for a URL rule class.
+ *
+ * Custom URL rule classes should extend from this class and implement two methods:
+ * {@link createUrl} and {@link parseUrl}.
+ *
+ * @author Qiang Xue <qiang.xue@gmail.com>
+ * @version $Id: CUrlManager.php 3515 2011-12-28 12:29:24Z mdomba $
+ * @package system.web
+ * @since 1.1.8
+ */
+abstract class CBaseUrlRule extends CComponent
+{
+	/**
+	 * @var boolean whether this rule will also parse the host info part. Defaults to false.
+	 */
+	public $hasHostInfo=false;
+	/**
+	 * Creates a URL based on this rule.
+	 * @param CUrlManager $manager the manager
+	 * @param string $route the route
+	 * @param array $params list of parameters (name=>value) associated with the route
+	 * @param string $ampersand the token separating name-value pairs in the URL.
+	 * @return mixed the constructed URL. False if this rule does not apply.
+	 */
+	abstract public function createUrl($manager,$route,$params,$ampersand);
+	/**
+	 * Parses a URL based on this rule.
+	 * @param CUrlManager $manager the URL manager
+	 * @param CHttpRequest $request the request object
+	 * @param string $pathInfo path info part of the URL (URL suffix is already removed based on {@link CUrlManager::urlSuffix})
+	 * @param string $rawPathInfo path info that contains the potential URL suffix
+	 * @return mixed the route that consists of the controller ID and action ID. False if this rule does not apply.
+	 */
+	abstract public function parseUrl($manager,$request,$pathInfo,$rawPathInfo);
+}
+
+/**
  * CUrlRule represents a URL formatting/parsing rule.
  *
  * It mainly consists of two parts: route and pattern. The former classifies
@@ -462,30 +556,27 @@ class CUrlManager extends CApplicationComponent
  * may have a set of named parameters.
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CUrlManager.php 2303 2010-08-05 12:18:06Z qiang.xue $
+ * @version $Id: CUrlManager.php 3515 2011-12-28 12:29:24Z mdomba $
  * @package system.web
  * @since 1.0
  */
-class CUrlRule extends CComponent
+class CUrlRule extends CBaseUrlRule
 {
 	/**
 	 * @var string the URL suffix used for this rule.
 	 * For example, ".html" can be used so that the URL looks like pointing to a static HTML page.
 	 * Defaults to null, meaning using the value of {@link CUrlManager::urlSuffix}.
-	 * @since 1.0.6
 	 */
 	public $urlSuffix;
 	/**
 	 * @var boolean whether the rule is case sensitive. Defaults to null, meaning
 	 * using the value of {@link CUrlManager::caseSensitive}.
-	 * @since 1.0.1
 	 */
 	public $caseSensitive;
 	/**
 	 * @var array the default GET parameters (name=>value) that this rule provides.
 	 * When this rule is used to parse the incoming request, the values declared in this property
 	 * will be injected into $_GET.
-	 * @since 1.0.8
 	 */
 	public $defaultParams=array();
 	/**
@@ -499,17 +590,29 @@ class CUrlRule extends CComponent
 	 */
 	public $matchValue;
 	/**
+	 * @var string the HTTP verb (e.g. GET, POST, DELETE) that this rule should match.
+	 * If this rule can match multiple verbs, please separate them with commas.
+	 * If this property is not set, the rule can match any verb.
+	 * Note that this property is only used when parsing a request. It is ignored for URL creation.
+	 * @since 1.1.7
+	 */
+	public $verb;
+	/**
+	 * @var boolean whether this rule is only used for request parsing.
+	 * Defaults to false, meaning the rule is used for both URL parsing and creation.
+	 * @since 1.1.7
+	 */
+	public $parsingOnly=false;
+	/**
 	 * @var string the controller/action pair
 	 */
 	public $route;
 	/**
 	 * @var array the mapping from route param name to token name (e.g. _r1=><1>)
-	 * @since 1.0.5
 	 */
 	public $references=array();
 	/**
 	 * @var string the pattern used to match route
-	 * @since 1.0.5
 	 */
 	public $routePattern;
 	/**
@@ -530,31 +633,28 @@ class CUrlRule extends CComponent
 	public $append;
 	/**
 	 * @var boolean whether host info should be considered for this rule
-	 * @since 1.0.11
 	 */
 	public $hasHostInfo;
 
 	/**
 	 * Constructor.
-	 * @param string the route of the URL (controller/action)
-	 * @param string the pattern for matching the URL
+	 * @param string $route the route of the URL (controller/action)
+	 * @param string $pattern the pattern for matching the URL
 	 */
 	public function __construct($route,$pattern)
 	{
 		if(is_array($route))
 		{
-			if(isset($route['urlSuffix']))
-				$this->urlSuffix=$route['urlSuffix'];
-			if(isset($route['caseSensitive']))
-				$this->caseSensitive=$route['caseSensitive'];
-			if(isset($route['defaultParams']))
-				$this->defaultParams=$route['defaultParams'];
-			if(isset($route['matchValue']))
-				$this->matchValue=$route['matchValue'];
-			$route=$this->route=$route[0];
+			foreach(array('urlSuffix', 'caseSensitive', 'defaultParams', 'matchValue', 'verb', 'parsingOnly') as $name)
+			{
+				if(isset($route[$name]))
+					$this->$name=$route[$name];
+			}
+			if(isset($route['pattern']))
+				$pattern=$route['pattern'];
+			$route=$route[0];
 		}
-		else
-			$this->route=$route;
+		$this->route=trim($route,'/');
 
 		$tr2['/']=$tr['/']='\\/';
 
@@ -565,6 +665,9 @@ class CUrlRule extends CComponent
 		}
 
 		$this->hasHostInfo=!strncasecmp($pattern,'http://',7) || !strncasecmp($pattern,'https://',8);
+
+		if($this->verb!==null)
+			$this->verb=preg_split('/[\s,]+/',strtoupper($this->verb),-1,PREG_SPLIT_NO_EMPTY);
 
 		if(preg_match_all('/<(\w+):?(.*?)?>/',$pattern,$matches))
 		{
@@ -600,14 +703,17 @@ class CUrlRule extends CComponent
 
 	/**
 	 * Creates a URL based on this rule.
-	 * @param CUrlManager the manager
-	 * @param string the route
-	 * @param array list of parameters
-	 * @param string the token separating name-value pairs in the URL.
-	 * @return string the constructed URL
+	 * @param CUrlManager $manager the manager
+	 * @param string $route the route
+	 * @param array $params list of parameters
+	 * @param string $ampersand the token separating name-value pairs in the URL.
+	 * @return mixed the constructed URL or false on error
 	 */
 	public function createUrl($manager,$route,$params,$ampersand)
 	{
+		if($this->parsingOnly)
+			return false;
+
 		if($manager->caseSensitive && $this->caseSensitive===null || $this->caseSensitive)
 			$case='';
 		else
@@ -662,7 +768,7 @@ class CUrlRule extends CComponent
 		if($this->hasHostInfo)
 		{
 			$hostInfo=Yii::app()->getRequest()->getHostInfo();
-			if(strpos($url,$hostInfo)===0)
+			if(stripos($url,$hostInfo)===0)
 				$url=substr($url,strlen($hostInfo));
 		}
 
@@ -682,15 +788,18 @@ class CUrlRule extends CComponent
 	}
 
 	/**
-	 * Parases a URL based on this rule.
-	 * @param CUrlManager the URL manager
-	 * @param CHttpRequest the request object
-	 * @param string path info part of the URL
-	 * @param string path info that contains the potential URL suffix
-	 * @return string the route that consists of the controller ID and action ID
+	 * Parses a URL based on this rule.
+	 * @param CUrlManager $manager the URL manager
+	 * @param CHttpRequest $request the request object
+	 * @param string $pathInfo path info part of the URL
+	 * @param string $rawPathInfo path info that contains the potential URL suffix
+	 * @return mixed the route that consists of the controller ID and action ID or false on error
 	 */
 	public function parseUrl($manager,$request,$pathInfo,$rawPathInfo)
 	{
+		if($this->verb!==null && !in_array($request->getRequestType(), $this->verb, true))
+			return false;
+
 		if($manager->caseSensitive && $this->caseSensitive===null || $this->caseSensitive)
 			$case='';
 		else
@@ -708,7 +817,7 @@ class CUrlRule extends CComponent
 		}
 
 		if($this->hasHostInfo)
-			$pathInfo=$request->getHostInfo().rtrim('/'.$pathInfo,'/');
+			$pathInfo=strtolower($request->getHostInfo()).rtrim('/'.$pathInfo,'/');
 
 		$pathInfo.='/';
 

@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -17,7 +17,7 @@
  * See {@link CCache} manual for common cache operations that are supported by CApcCache.
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CApcCache.php 1832 2010-02-20 03:22:45Z qiang.xue $
+ * @version $Id: CApcCache.php 3515 2011-12-28 12:29:24Z mdomba $
  * @package system.caching
  * @since 1.0
  */
@@ -39,7 +39,7 @@ class CApcCache extends CCache
 	/**
 	 * Retrieves a value from cache with a specified key.
 	 * This is the implementation of the method declared in the parent class.
-	 * @param string a unique key identifying the cached value
+	 * @param string $key a unique key identifying the cached value
 	 * @return string the value stored in cache, false if the value is not in the cache or expired.
 	 */
 	protected function getValue($key)
@@ -49,9 +49,8 @@ class CApcCache extends CCache
 
 	/**
 	 * Retrieves multiple values from cache with the specified keys.
-	 * @param array a list of keys identifying the cached values
+	 * @param array $keys a list of keys identifying the cached values
 	 * @return array a list of cached values indexed by the keys
-	 * @since 1.0.8
 	 */
 	protected function getValues($keys)
 	{
@@ -62,9 +61,9 @@ class CApcCache extends CCache
 	 * Stores a value identified by a key in cache.
 	 * This is the implementation of the method declared in the parent class.
 	 *
-	 * @param string the key identifying the value to be cached
-	 * @param string the value to be cached
-	 * @param integer the number of seconds in which the cached value will expire. 0 means never expire.
+	 * @param string $key the key identifying the value to be cached
+	 * @param string $value the value to be cached
+	 * @param integer $expire the number of seconds in which the cached value will expire. 0 means never expire.
 	 * @return boolean true if the value is successfully stored into cache, false otherwise
 	 */
 	protected function setValue($key,$value,$expire)
@@ -76,9 +75,9 @@ class CApcCache extends CCache
 	 * Stores a value identified by a key into cache if the cache does not contain this key.
 	 * This is the implementation of the method declared in the parent class.
 	 *
-	 * @param string the key identifying the value to be cached
-	 * @param string the value to be cached
-	 * @param integer the number of seconds in which the cached value will expire. 0 means never expire.
+	 * @param string $key the key identifying the value to be cached
+	 * @param string $value the value to be cached
+	 * @param integer $expire the number of seconds in which the cached value will expire. 0 means never expire.
 	 * @return boolean true if the value is successfully stored into cache, false otherwise
 	 */
 	protected function addValue($key,$value,$expire)
@@ -89,7 +88,7 @@ class CApcCache extends CCache
 	/**
 	 * Deletes a value with the specified key from cache
 	 * This is the implementation of the method declared in the parent class.
-	 * @param string the key of the value to be deleted
+	 * @param string $key the key of the value to be deleted
 	 * @return boolean if no error happens during deletion
 	 */
 	protected function deleteValue($key)
@@ -99,9 +98,11 @@ class CApcCache extends CCache
 
 	/**
 	 * Deletes all values from cache.
-	 * Be careful of performing this operation if the cache is shared by multiple applications.
+	 * This is the implementation of the method declared in the parent class.
+	 * @return boolean whether the flush operation was successful.
+	 * @since 1.1.5
 	 */
-	public function flush()
+	protected function flushValues()
 	{
 		return apc_clear_cache('user');
 	}

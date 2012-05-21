@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -12,7 +12,7 @@
  * CDbColumnSchema class describes the column meta data of a database table.
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CDbColumnSchema.php 2130 2010-05-13 00:24:11Z qiang.xue $
+ * @version $Id: CDbColumnSchema.php 3558 2012-02-09 17:39:04Z alexander.makarow $
  * @package system.db.schema
  * @since 1.0
  */
@@ -62,13 +62,18 @@ class CDbColumnSchema extends CComponent
 	 * @var boolean whether this column is a foreign key
 	 */
 	public $isForeignKey;
+	/**
+	 * @var boolean whether this column is auto-incremental
+	 * @since 1.1.7
+	 */
+	public $autoIncrement=false;
 
 
 	/**
 	 * Initializes the column with its DB type and default value.
 	 * This sets up the column's PHP type, size, precision, scale as well as default value.
-	 * @param string the column's DB type
-	 * @param mixed the default value
+	 * @param string $dbType the column's DB type
+	 * @param mixed $defaultValue the default value
 	 */
 	public function init($dbType, $defaultValue)
 	{
@@ -81,7 +86,7 @@ class CDbColumnSchema extends CComponent
 
 	/**
 	 * Extracts the PHP type from DB type.
-	 * @param string DB type
+	 * @param string $dbType DB type
 	 */
 	protected function extractType($dbType)
 	{
@@ -97,7 +102,7 @@ class CDbColumnSchema extends CComponent
 
 	/**
 	 * Extracts size, precision and scale information from column's DB type.
-	 * @param string the column's DB type
+	 * @param string $dbType the column's DB type
 	 */
 	protected function extractLimit($dbType)
 	{
@@ -113,7 +118,7 @@ class CDbColumnSchema extends CComponent
 	/**
 	 * Extracts the default value for the column.
 	 * The value is typecasted to correct PHP type.
-	 * @param mixed the default value obtained from metadata
+	 * @param mixed $defaultValue the default value obtained from metadata
 	 */
 	protected function extractDefault($defaultValue)
 	{
@@ -122,14 +127,14 @@ class CDbColumnSchema extends CComponent
 
 	/**
 	 * Converts the input value to the type that this column is of.
-	 * @param mixed input value
+	 * @param mixed $value input value
 	 * @return mixed converted value
 	 */
 	public function typecast($value)
 	{
 		if(gettype($value)===$this->type || $value===null || $value instanceof CDbExpression)
 			return $value;
-		if($value==='')
+		if($value==='' && $this->allowNull)
 			return $this->type==='string' ? '' : null;
 		switch($this->type)
 		{

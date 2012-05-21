@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -22,7 +22,7 @@
  * {@link catalog} property, which defaults to 'messages'.
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CGettextMessageSource.php 1678 2010-01-07 21:02:00Z qiang.xue $
+ * @version $Id: CGettextMessageSource.php 3515 2011-12-28 12:29:24Z mdomba $
  * @package system.i18n
  * @since 1.0
  */
@@ -41,7 +41,6 @@ class CGettextMessageSource extends CMessageSource
 	 * @var string the ID of the cache application component that is used to cache the messages.
 	 * Defaults to 'cache' which refers to the primary cache application component.
 	 * Set this property to false if you want to disable caching the messages.
-	 * @since 1.0.10
 	 */
 	public $cacheID='cache';
 	/**
@@ -79,8 +78,8 @@ class CGettextMessageSource extends CMessageSource
 
 	/**
 	 * Loads the message translation for the specified language and category.
-	 * @param string the message category
-	 * @param string the target language
+	 * @param string $category the message category
+	 * @param string $language the target language
 	 * @return array the loaded messages
 	 */
 	protected function loadMessages($category, $language)

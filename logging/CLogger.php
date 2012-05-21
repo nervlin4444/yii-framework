@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -14,8 +14,19 @@
  * CLogger implements the methods to retrieve the messages with
  * various filter conditions, including log levels and log categories.
  *
+ * @property array $logs List of messages. Each array elements represents one message
+ * with the following structure:
+ * array(
+ *   [0] => message (string)
+ *   [1] => level (string)
+ *   [2] => category (string)
+ *   [3] => timestamp (float, obtained by microtime(true));.
+ * @property float $executionTime The total time for serving the current request.
+ * @property integer $memoryUsage Memory usage of the application (in bytes).
+ * @property array $profilingResults The profiling results.
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CLogger.php 1678 2010-01-07 21:02:00Z qiang.xue $
+ * @version $Id: CLogger.php 3515 2011-12-28 12:29:24Z mdomba $
  * @package system.logging
  * @since 1.0
  */
@@ -35,6 +46,15 @@ class CLogger extends CComponent
 	 */
 	public $autoFlush=10000;
 	/**
+	 * @var boolean this property will be passed as the parameter to {@link flush()} when it is
+	 * called in {@link log()} due to the limit of {@link autoFlush} being reached.
+	 * By default, this property is false, meaning the filtered messages are still kept in the memory
+	 * by each log route after calling {@link flush()}. If this is true, the filtered messages
+	 * will be written to the actual medium each time {@link flush()} is called within {@link log()}.
+	 * @since 1.1.8
+	 */
+	public $autoDump=false;
+	/**
 	 * @var array log messages
 	 */
 	private $_logs=array();
@@ -52,24 +72,32 @@ class CLogger extends CComponent
 	private $_categories;
 	/**
 	 * @var array the profiling results (category, token => time in seconds)
-	 * @since 1.0.6
 	 */
 	private $_timings;
+	/**
+	* @var boolean if we are processing the log or still accepting new log messages
+	* @since 1.1.9
+	*/
+	private $_processing = false;
 
 	/**
 	 * Logs a message.
 	 * Messages logged by this method may be retrieved back via {@link getLogs}.
-	 * @param string message to be logged
-	 * @param string level of the message (e.g. 'Trace', 'Warning', 'Error'). It is case-insensitive.
-	 * @param string category of the message (e.g. 'system.web'). It is case-insensitive.
+	 * @param string $message message to be logged
+	 * @param string $level level of the message (e.g. 'Trace', 'Warning', 'Error'). It is case-insensitive.
+	 * @param string $category category of the message (e.g. 'system.web'). It is case-insensitive.
 	 * @see getLogs
 	 */
 	public function log($message,$level='info',$category='application')
 	{
 		$this->_logs[]=array($message,$level,$category,microtime(true));
 		$this->_logCount++;
-		if($this->autoFlush>0 && $this->_logCount>=$this->autoFlush)
-			$this->flush();
+		if($this->autoFlush>0 && $this->_logCount>=$this->autoFlush && !$this->_processing)
+		{
+			$this->_processing=true;
+			$this->flush($this->autoDump);
+			$this->_processing=false;
+		}
 	}
 
 	/**
@@ -88,8 +116,8 @@ class CLogger extends CComponent
 	 * Level filter and category filter are combinational, i.e., only messages
 	 * satisfying both filter conditions will be returned.
 	 *
-	 * @param string level filter
-	 * @param string category filter
+	 * @param string $levels level filter
+	 * @param string $categories category filter
 	 * @return array list of messages. Each array elements represents one message
 	 * with the following structure:
 	 * array(
@@ -117,7 +145,7 @@ class CLogger extends CComponent
 
 	/**
 	 * Filter function used by {@link getLogs}
-	 * @param array element to be filtered
+	 * @param array $value element to be filtered
 	 * @return array valid log, false if not.
 	 */
 	private function filterByCategory($value)
@@ -133,7 +161,7 @@ class CLogger extends CComponent
 
 	/**
 	 * Filter function used by {@link getLogs}
-	 * @param array element to be filtered
+	 * @param array $value element to be filtered
 	 * @return array valid log, false if not.
 	 */
 	private function filterByLevel($value)
@@ -190,12 +218,11 @@ class CLogger extends CComponent
 	 * If no filter is specified, the returned results would be an array with each element
 	 * being array($token,$category,$time).
 	 * If a filter is specified, the results would be an array of timings.
-	 * @param string token filter. Defaults to null, meaning not filtered by token.
-	 * @param string category filter. Defaults to null, meaning not filtered by category.
-	 * @param boolean whether to refresh the internal timing calculations. If false,
+	 * @param string $token token filter. Defaults to null, meaning not filtered by token.
+	 * @param string $category category filter. Defaults to null, meaning not filtered by category.
+	 * @param boolean $refresh whether to refresh the internal timing calculations. If false,
 	 * only the first time calling this method will the timings be calculated internally.
 	 * @return array the profiling results.
-	 * @since 1.0.6
 	 */
 	public function getProfilingResults($token=null,$category=null,$refresh=false)
 	{
@@ -253,18 +280,19 @@ class CLogger extends CComponent
 	 * Removes all recorded messages from the memory.
 	 * This method will raise an {@link onFlush} event.
 	 * The attached event handlers can process the log messages before they are removed.
+	 * @param boolean $dumpLogs whether to process the logs immediately as they are passed to log route
 	 * @since 1.1.0
 	 */
-	public function flush()
+	public function flush($dumpLogs=false)
 	{
-		$this->onFlush(new CEvent($this));
+		$this->onFlush(new CEvent($this, array('dumpLogs'=>$dumpLogs)));
 		$this->_logs=array();
 		$this->_logCount=0;
 	}
 
 	/**
 	 * Raises an <code>onFlush</code> event.
-	 * @param CEvent the event parameter
+	 * @param CEvent $event the event parameter
 	 * @since 1.1.0
 	 */
 	public function onFlush($event)

@@ -5,13 +5,13 @@
  * @link http://www.yiiframework.com/
  * @copyright Copyright &copy; 2008-2010 Yii Software LLC
  * @license http://www.yiiframework.com/license/
- * @version $Id: jquery.yiilistview.js 164 2010-04-29 21:03:33Z qiang.xue $
+ * @version $Id: jquery.yiilistview.js 3296 2011-06-22 17:15:17Z qiang.xue $
  */
 
 ;(function($) {
 	/**
 	 * yiiListView set function.
-	 * @param map settings for the list view. Availablel options are as follows:
+	 * @param options map settings for the list view. Availablel options are as follows:
 	 * - ajaxUpdate: array, IDs of the containers whose content may be updated by ajax response
 	 * - ajaxVar: string, the name of the GET variable indicating the ID of the element triggering the AJAX request
 	 * - pagerClass: string, the CSS class for the pager container
@@ -26,12 +26,12 @@
 			var $this = $(this);
 			var id = $this.attr('id');
 			if(settings.updateSelector == undefined) {
-				settings.updateSelector = '#'+id+' .'+settings.pagerClass+' a, #'+id+' .'+settings.sorterClass+' a';
+				settings.updateSelector = '#'+id+' .'+settings.pagerClass.replace(/\s+/g,'.')+' a, #'+id+' .'+settings.sorterClass.replace(/\s+/g,'.')+' a';
 			}
 			$.fn.yiiListView.settings[id] = settings;
 
 			if(settings.ajaxUpdate.length > 0) {
-				$(settings.updateSelector).live('click',function(){
+				$(settings.updateSelector).die('click').live('click',function(){
 					$.fn.yiiListView.update(id, {url: $(this).attr('href')});
 					return false;
 				});
@@ -48,14 +48,15 @@
 		// updateSelector: '#id .pager a, '#id .sort a',
 		// beforeAjaxUpdate: function(id) {},
 		// afterAjaxUpdate: function(id, data) {},
+		// url: 'ajax request URL'
 	};
 
 	$.fn.yiiListView.settings = {};
 
 	/**
 	 * Returns the key value for the specified row
-	 * @param string the ID of the list view container
-	 * @param integer the zero-based index of the data item
+	 * @param id string the ID of the list view container
+	 * @param index integer the zero-based index of the data item
 	 * @return string the key value
 	 */
 	$.fn.yiiListView.getKey = function(id, index) {
@@ -64,17 +65,18 @@
 
 	/**
 	 * Returns the URL that generates the list view content.
-	 * @param string the ID of the list view container
+	 * @param id string the ID of the list view container
 	 * @return string the URL that generates the list view content.
 	 */
 	$.fn.yiiListView.getUrl = function(id) {
-		return $('#'+id+' > div.keys').attr('title');
+		var settings = $.fn.yiiListView.settings[id];
+		return settings.url || $('#'+id+' > div.keys').attr('title');
 	};
 
 	/**
 	 * Performs an AJAX-based update of the list view contents.
-	 * @param string the ID of the list view container
-	 * @param map the AJAX request options (see jQuery.ajax API manual). By default,
+	 * @param id string the ID of the list view container
+	 * @param options map the AJAX request options (see jQuery.ajax API manual). By default,
 	 * the URL to be requested is the one that generates the current content of the list view.
 	 */
 	$.fn.yiiListView.update = function(id, options) {
@@ -85,10 +87,8 @@
 			url: $.fn.yiiListView.getUrl(id),
 			success: function(data,status) {
 				$.each(settings.ajaxUpdate, function(i,v) {
-					var id='#'+v,
-						$d=$(data)
-						$filtered=$d.filter(id);
-					$(id).html( $filtered.size() ? $filtered : $d.find(id));
+					var id='#'+v;
+					$(id).replaceWith($(id,'<div>'+data+'</div>'));
 				});
 				if(settings.afterAjaxUpdate != undefined)
 					settings.afterAjaxUpdate(id, data);
@@ -104,7 +104,7 @@
 			options.url = $.param.querystring(options.url, options.data);
 			options.data = {};
 		}
-		options.url = $.param.querystring(options.url, settings.ajaxVar+'='+id)
+		options.url = $.param.querystring(options.url, settings.ajaxVar+'='+id);
 
 		if(settings.beforeAjaxUpdate != undefined)
 			settings.beforeAjaxUpdate(id);

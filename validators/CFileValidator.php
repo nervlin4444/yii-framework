@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -38,8 +38,24 @@
  *
  * You can use {@link CFileValidator} to validate the file attribute.
  *
+ * In addition to the {@link message} property for setting a custom error message, 
+ * CFileValidator has a few custom error messages you can set that correspond to different
+ * validation scenarios. When the file is too large, you may use the {@link tooLarge} property
+ * to define a custom error message. Similarly for {@link tooSmall}, {@link wrongType} and 
+ * {@link tooMany}. The messages may contain additional placeholders that will be replaced 
+ * with the actual content. In addition to the "{attribute}" placeholder, recognized by all 
+ * validators (see {@link CValidator}), CFileValidator allows for the following placeholders 
+ * to be specified:
+ * <ul>
+ * <li>{file}: replaced with the name of the file.</li>
+ * <li>{limit}: when using {@link tooLarge}, replaced with {@link maxSize}; 
+ * when using {@link tooSmall}, replaced with {@link maxSize}; and when using {@link tooMany} 
+ * replaced with {@link maxFiles}.</li>
+ * <li>{extensions}: when using {@link wrongType}, it will be replaced with the allowed extensions.</li>
+ * </ul>
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CFileValidator.php 2347 2010-08-28 13:22:20Z mdomba $
+ * @version $Id: CFileValidator.php 3491 2011-12-17 05:17:57Z jefftulsa $
  * @package system.validators
  * @since 1.0
  */
@@ -102,15 +118,15 @@ class CFileValidator extends CValidator
 	/**
 	 * Set the attribute and then validates using {@link validateFile}.
 	 * If there is any error, the error message is added to the object.
-	 * @param CModel the object being validated
-	 * @param string the attribute being validated
+	 * @param CModel $object the object being validated
+	 * @param string $attribute the attribute being validated
 	 */
 	protected function validateAttribute($object, $attribute)
 	{
 		if($this->maxFiles > 1)
 		{
 			$files=$object->$attribute;
-			if(!is_array($files))
+			if(!is_array($files) || !isset($files[0]) || !$files[0] instanceof CUploadedFile)
 				$files = CUploadedFile::getInstances($object, $attribute);
 			if(array()===$files)
 				return $this->emptyAttribute($object, $attribute);
@@ -138,9 +154,9 @@ class CFileValidator extends CValidator
 
 	/**
 	 * Internally validates a file object.
-	 * @param CModel the object being validated
-	 * @param string the attribute being validated
-	 * @param CUploadedFile uploaded file passed to check against a set of rules
+	 * @param CModel $object the object being validated
+	 * @param string $attribute the attribute being validated
+	 * @param CUploadedFile $file uploaded file passed to check against a set of rules
 	 */
 	protected function validateFile($object, $attribute, $file)
 	{
@@ -182,8 +198,8 @@ class CFileValidator extends CValidator
 
 	/**
 	 * Raises an error to inform end user about blank attribute.
-	 * @param CModel the object being validated
-	 * @param string the attribute being validated
+	 * @param CModel $object the object being validated
+	 * @param string $attribute the attribute being validated
 	 */
 	protected function emptyAttribute($object, $attribute)
 	{
@@ -208,7 +224,7 @@ class CFileValidator extends CValidator
 	protected function getSizeLimit()
 	{
 		$limit=ini_get('upload_max_filesize');
-		$limit=$this->sizeToBytes($limit);			
+		$limit=$this->sizeToBytes($limit);
 		if($this->maxSize!==null && $limit>0 && $this->maxSize<$limit)
 			$limit=$this->maxSize;
 		if(isset($_POST['MAX_FILE_SIZE']) && $_POST['MAX_FILE_SIZE']>0 && $_POST['MAX_FILE_SIZE']<$limit)
@@ -219,7 +235,7 @@ class CFileValidator extends CValidator
 	/**
 	 * Converts php.ini style size to bytes
 	 *
-	 * @param string $sizeStr
+	 * @param string $sizeStr $sizeStr
 	 * @return int
 	 */
 	private function sizeToBytes($sizeStr)

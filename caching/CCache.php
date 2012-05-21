@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -41,7 +41,7 @@
  * CCache also implements ArrayAccess so that it can be used like an array.
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CCache.php 1678 2010-01-07 21:02:00Z qiang.xue $
+ * @version $Id: CCache.php 3515 2011-12-28 12:29:24Z mdomba $
  * @package system.caching
  * @since 1.0
  */
@@ -64,7 +64,7 @@ abstract class CCache extends CApplicationComponent implements ICache, ArrayAcce
 	}
 
 	/**
-	 * @param string a key identifying a value to be cached
+	 * @param string $key a key identifying a value to be cached
 	 * @return sring a key generated from the provided key which ensures the uniqueness across applications
 	 */
 	protected function generateUniqueKey($key)
@@ -74,7 +74,7 @@ abstract class CCache extends CApplicationComponent implements ICache, ArrayAcce
 
 	/**
 	 * Retrieves a value from cache with a specified key.
-	 * @param string a key identifying the cached value
+	 * @param string $id a key identifying the cached value
 	 * @return mixed the value stored in cache, false if the value is not in the cache, expired or the dependency has changed.
 	 */
 	public function get($id)
@@ -98,11 +98,10 @@ abstract class CCache extends CApplicationComponent implements ICache, ArrayAcce
 	 * Some caches (such as memcache, apc) allow retrieving multiple cached values at one time,
 	 * which may improve the performance since it reduces the communication cost.
 	 * In case a cache doesn't support this feature natively, it will be simulated by this method.
-	 * @param array list of keys identifying the cached values
+	 * @param array $ids list of keys identifying the cached values
 	 * @return array list of cached values corresponding to the specified keys. The array
 	 * is returned in terms of (key,value) pairs.
 	 * If a value is not cached or expired, the corresponding array value will be false.
-	 * @since 1.0.8
 	 */
 	public function mget($ids)
 	{
@@ -133,10 +132,10 @@ abstract class CCache extends CApplicationComponent implements ICache, ArrayAcce
 	 * If the cache already contains such a key, the existing value and
 	 * expiration time will be replaced with the new ones.
 	 *
-	 * @param string the key identifying the value to be cached
-	 * @param mixed the value to be cached
-	 * @param integer the number of seconds in which the cached value will expire. 0 means never expire.
-	 * @param ICacheDependency dependency of the cached item. If the dependency changes, the item is labeled invalid.
+	 * @param string $id the key identifying the value to be cached
+	 * @param mixed $value the value to be cached
+	 * @param integer $expire the number of seconds in which the cached value will expire. 0 means never expire.
+	 * @param ICacheDependency $dependency dependency of the cached item. If the dependency changes, the item is labeled invalid.
 	 * @return boolean true if the value is successfully stored into cache, false otherwise
 	 */
 	public function set($id,$value,$expire=0,$dependency=null)
@@ -151,10 +150,10 @@ abstract class CCache extends CApplicationComponent implements ICache, ArrayAcce
 	/**
 	 * Stores a value identified by a key into cache if the cache does not contain this key.
 	 * Nothing will be done if the cache already contains the key.
-	 * @param string the key identifying the value to be cached
-	 * @param mixed the value to be cached
-	 * @param integer the number of seconds in which the cached value will expire. 0 means never expire.
-	 * @param ICacheDependency dependency of the cached item. If the dependency changes, the item is labeled invalid.
+	 * @param string $id the key identifying the value to be cached
+	 * @param mixed $value the value to be cached
+	 * @param integer $expire the number of seconds in which the cached value will expire. 0 means never expire.
+	 * @param ICacheDependency $dependency dependency of the cached item. If the dependency changes, the item is labeled invalid.
 	 * @return boolean true if the value is successfully stored into cache, false otherwise
 	 */
 	public function add($id,$value,$expire=0,$dependency=null)
@@ -168,26 +167,24 @@ abstract class CCache extends CApplicationComponent implements ICache, ArrayAcce
 
 	/**
 	 * Deletes a value with the specified key from cache
-	 * @param string the key of the value to be deleted
+	 * @param string $id the key of the value to be deleted
 	 * @return boolean if no error happens during deletion
 	 */
 	public function delete($id)
 	{
-		Yii::trace('Deleting "'.$id.'" to cache','system.caching.'.get_class($this));
+		Yii::trace('Deleting "'.$id.'" from cache','system.caching.'.get_class($this));
 		return $this->deleteValue($this->generateUniqueKey($id));
 	}
 
 	/**
 	 * Deletes all values from cache.
 	 * Be careful of performing this operation if the cache is shared by multiple applications.
-	 * Child classes may implement this method to realize the flush operation.
-	 * @throws CException if this method is not overridden by child classes
+	 * @return boolean whether the flush operation was successful.
 	 */
 	public function flush()
 	{
-		Yii::trace('Flushign cache','system.caching.'.get_class($this));
-		throw new CException(Yii::t('yii','{className} does not support flush() functionality.',
-			array('{className}'=>get_class($this))));
+		Yii::trace('Flushing cache','system.caching.'.get_class($this));
+		return $this->flushValues();
 	}
 
 	/**
@@ -196,8 +193,9 @@ abstract class CCache extends CApplicationComponent implements ICache, ArrayAcce
 	 * from specific cache storage. The uniqueness and dependency are handled
 	 * in {@link get()} already. So only the implementation of data retrieval
 	 * is needed.
-	 * @param string a unique key identifying the cached value
+	 * @param string $key a unique key identifying the cached value
 	 * @return string the value stored in cache, false if the value is not in the cache or expired.
+	 * @throws CException if this method is not overridden by child classes
 	 */
 	protected function getValue($key)
 	{
@@ -211,9 +209,8 @@ abstract class CCache extends CApplicationComponent implements ICache, ArrayAcce
 	 * times to retrieve the cached values one by one.
 	 * If the underlying cache storage supports multiget, this method should
 	 * be overridden to exploit that feature.
-	 * @param array a list of keys identifying the cached values
+	 * @param array $keys a list of keys identifying the cached values
 	 * @return array a list of cached values indexed by the keys
-	 * @since 1.0.8
 	 */
 	protected function getValues($keys)
 	{
@@ -230,10 +227,11 @@ abstract class CCache extends CApplicationComponent implements ICache, ArrayAcce
 	 * in {@link set()} already. So only the implementation of data storage
 	 * is needed.
 	 *
-	 * @param string the key identifying the value to be cached
-	 * @param string the value to be cached
-	 * @param integer the number of seconds in which the cached value will expire. 0 means never expire.
+	 * @param string $key the key identifying the value to be cached
+	 * @param string $value the value to be cached
+	 * @param integer $expire the number of seconds in which the cached value will expire. 0 means never expire.
 	 * @return boolean true if the value is successfully stored into cache, false otherwise
+	 * @throws CException if this method is not overridden by child classes
 	 */
 	protected function setValue($key,$value,$expire)
 	{
@@ -248,10 +246,11 @@ abstract class CCache extends CApplicationComponent implements ICache, ArrayAcce
 	 * in {@link add()} already. So only the implementation of data storage
 	 * is needed.
 	 *
-	 * @param string the key identifying the value to be cached
-	 * @param string the value to be cached
-	 * @param integer the number of seconds in which the cached value will expire. 0 means never expire.
+	 * @param string $key the key identifying the value to be cached
+	 * @param string $value the value to be cached
+	 * @param integer $expire the number of seconds in which the cached value will expire. 0 means never expire.
 	 * @return boolean true if the value is successfully stored into cache, false otherwise
+	 * @throws CException if this method is not overridden by child classes
 	 */
 	protected function addValue($key,$value,$expire)
 	{
@@ -262,8 +261,9 @@ abstract class CCache extends CApplicationComponent implements ICache, ArrayAcce
 	/**
 	 * Deletes a value with the specified key from cache
 	 * This method should be implemented by child classes to delete the data from actual cache storage.
-	 * @param string the key of the value to be deleted
+	 * @param string $key the key of the value to be deleted
 	 * @return boolean if no error happens during deletion
+	 * @throws CException if this method is not overridden by child classes
 	 */
 	protected function deleteValue($key)
 	{
@@ -272,9 +272,22 @@ abstract class CCache extends CApplicationComponent implements ICache, ArrayAcce
 	}
 
 	/**
+	 * Deletes all values from cache.
+	 * Child classes may implement this method to realize the flush operation.
+	 * @return boolean whether the flush operation was successful.
+	 * @throws CException if this method is not overridden by child classes
+	 * @since 1.1.5
+	 */
+	protected function flushValues()
+	{
+		throw new CException(Yii::t('yii','{className} does not support flushValues() functionality.',
+			array('{className}'=>get_class($this))));
+	}
+
+	/**
 	 * Returns whether there is a cache entry with a specified key.
 	 * This method is required by the interface ArrayAccess.
-	 * @param string a key identifying the cached value
+	 * @param string $id a key identifying the cached value
 	 * @return boolean
 	 */
 	public function offsetExists($id)
@@ -285,7 +298,7 @@ abstract class CCache extends CApplicationComponent implements ICache, ArrayAcce
 	/**
 	 * Retrieves the value from cache with a specified key.
 	 * This method is required by the interface ArrayAccess.
-	 * @param string a key identifying the cached value
+	 * @param string $id a key identifying the cached value
 	 * @return mixed the value stored in cache, false if the value is not in the cache or expired.
 	 */
 	public function offsetGet($id)
@@ -298,8 +311,8 @@ abstract class CCache extends CApplicationComponent implements ICache, ArrayAcce
 	 * If the cache already contains such a key, the existing value will be
 	 * replaced with the new ones. To add expiration and dependencies, use the set() method.
 	 * This method is required by the interface ArrayAccess.
-	 * @param string the key identifying the value to be cached
-	 * @param mixed the value to be cached
+	 * @param string $id the key identifying the value to be cached
+	 * @param mixed $value the value to be cached
 	 */
 	public function offsetSet($id, $value)
 	{
@@ -309,7 +322,7 @@ abstract class CCache extends CApplicationComponent implements ICache, ArrayAcce
 	/**
 	 * Deletes the value with the specified key from cache
 	 * This method is required by the interface ArrayAccess.
-	 * @param string the key of the value to be deleted
+	 * @param string $id the key of the value to be deleted
 	 * @return boolean if no error happens during deletion
 	 */
 	public function offsetUnset($id)

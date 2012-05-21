@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -16,8 +16,10 @@ require_once('PHPUnit/Extensions/SeleniumTestCase.php');
  * It extends PHPUnit_Extensions_SeleniumTestCase and provides the database
  * fixture management feature like {@link CDbTestCase}.
  *
+ * @property CDbFixtureManager $fixtureManager The database fixture manager.
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CWebTestCase.php 1678 2010-01-07 21:02:00Z qiang.xue $
+ * @version $Id: CWebTestCase.php 3426 2011-10-25 00:01:09Z alexander.makarow $
  * @package system.test
  * @since 1.1
  */
@@ -35,7 +37,7 @@ abstract class CWebTestCase extends PHPUnit_Extensions_SeleniumTestCase
 	/**
 	 * PHP magic method.
 	 * This method is overridden so that named fixture data can be accessed like a normal property.
-	 * @param string the property name
+	 * @param string $name the property name
 	 * @return mixed the property value
 	 */
 	public function __get($name)
@@ -49,8 +51,8 @@ abstract class CWebTestCase extends PHPUnit_Extensions_SeleniumTestCase
 	/**
 	 * PHP magic method.
 	 * This method is overridden so that named fixture ActiveRecord instances can be accessed in terms of a method call.
-	 * @param string method name
-	 * @param string method parameters
+	 * @param string $name method name
+	 * @param string $params method parameters
 	 * @return mixed the property value
 	 */
 	public function __call($name,$params)
@@ -70,7 +72,7 @@ abstract class CWebTestCase extends PHPUnit_Extensions_SeleniumTestCase
 	}
 
 	/**
-	 * @param string the fixture name (the key value in {@link fixtures}).
+	 * @param string $name the fixture name (the key value in {@link fixtures}).
 	 * @return array the named fixture data
 	 */
 	public function getFixtureData($name)
@@ -79,8 +81,8 @@ abstract class CWebTestCase extends PHPUnit_Extensions_SeleniumTestCase
 	}
 
 	/**
-	 * @param string the fixture name (the key value in {@link fixtures}).
-	 * @param string the alias of the fixture data row
+	 * @param string $name the fixture name (the key value in {@link fixtures}).
+	 * @param string $alias the alias of the fixture data row
 	 * @return CActiveRecord the ActiveRecord instance corresponding to the specified alias in the named fixture.
 	 * False is returned if there is no such fixture or the record cannot be found.
 	 */

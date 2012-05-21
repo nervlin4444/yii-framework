@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -14,7 +14,7 @@
  * under the specified directory.
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: MessageCommand.php 1878 2010-03-10 21:19:30Z qiang.xue $
+ * @version $Id: MessageCommand.php 3394 2011-09-14 21:31:30Z alexander.makarow $
  * @package system.cli.commands
  * @since 1.0
  */
@@ -31,10 +31,15 @@ DESCRIPTION
   source files and compiles them into PHP arrays as message source.
 
 PARAMETERS
- * config-file: required, the path of the configuration file. The file
-   must be a valid PHP script which returns an array of name-value pairs.
-   Each name-value pair represents a configuration option. The following
-   options must be specified:
+ * config-file: required, the path of the configuration file. You can find
+   an example in framework/messages/config.php.
+
+   The file can be placed anywhere and must be a valid PHP script which
+   returns an array of name-value pairs. Each name-value pair represents
+   a configuration option.
+
+   The following options are available:
+
    - sourcePath: string, root directory of all source files.
    - messagePath: string, root directory containing message translations.
    - languages: array, list of language codes that the extracted messages
@@ -51,6 +56,9 @@ PARAMETERS
    - translator: the name of the function for translating messages.
      Defaults to 'Yii::t'. This is used as a mark to find messages to be
      translated.
+   - overwrite: if message file must be overwritten with the merged messages.
+   - removeOld: if message no longer needs translation it will be removed,
+     instead of being enclosed between a pair of '@@' marks.
 
 EOD;
 	}
@@ -79,6 +87,12 @@ EOD;
 		if(empty($languages))
 			$this->usageError("Languages cannot be empty.");
 
+		if(!isset($overwrite))
+			$overwrite = false;
+
+		if(!isset($removeOld))
+			$removeOld = false;
+		
 		$options=array();
 		if(isset($fileTypes))
 			$options['fileTypes']=$fileTypes;
@@ -98,7 +112,7 @@ EOD;
 			foreach($messages as $category=>$msgs)
 			{
 				$msgs=array_values(array_unique($msgs));
-				$this->generateMessageFile($msgs,$dir.DIRECTORY_SEPARATOR.$category.'.php');
+				$this->generateMessageFile($msgs,$dir.DIRECTORY_SEPARATOR.$category.'.php',$overwrite,$removeOld);
 			}
 		}
 	}
@@ -121,7 +135,7 @@ EOD;
 		return $messages;
 	}
 
-	protected function generateMessageFile($messages,$fileName)
+	protected function generateMessageFile($messages,$fileName,$overwrite,$removeOld)
 	{
 		echo "Saving messages to $fileName...";
 		if(is_file($fileName))
@@ -151,11 +165,12 @@ EOD;
 			ksort($translated);
 			foreach($translated as $message=>$translation)
 			{
-				if(!isset($merged[$message]) && !isset($todo[$message]))
+				if(!isset($merged[$message]) && !isset($todo[$message]) && !$removeOld)
 					$todo[$message]='@@'.$translation.'@@';
 			}
 			$merged=array_merge($todo,$merged);
-			$fileName.='.merged';
+			if($overwrite === false)
+				$fileName.='.merged';
 			echo "translation merged.\n";
 		}
 		else
@@ -180,6 +195,9 @@ EOD;
  * If the value is empty, the message is considered as not translated.
  * Messages that no longer need translation will have their translations
  * enclosed between a pair of '@@' marks.
+ *
+ * Message string can be used with plural forms format. Check i18n section
+ * of the guide for details.
  *
  * NOTE, this file must be saved in UTF-8 encoding.
  *

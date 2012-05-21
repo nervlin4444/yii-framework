@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -31,8 +31,10 @@ Yii::import('system.test.CTestCase');
  * corresponding to a fixture data row using <code>$this->posts('first post')</code>.
  * Note, here 'first post' refers to a key to a row in the original fixture data.
  *
+ * @property CDbFixtureManager $fixtureManager The database fixture manager.
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CDbTestCase.php 1678 2010-01-07 21:02:00Z qiang.xue $
+ * @version $Id: CDbTestCase.php 3426 2011-10-25 00:01:09Z alexander.makarow $
  * @package system.test
  * @since 1.1
  */
@@ -42,7 +44,7 @@ abstract class CDbTestCase extends CTestCase
 	 * @var array a list of fixtures that should be loaded before each test method executes.
 	 * The array keys are fixture names, and the array values are either AR class names
 	 * or table names. If table names, they must begin with a colon character (e.g. 'Post'
-	 * means an AR class, while ':Post' means a table name).
+	 * means an AR class, while ':post' means a table name).
 	 * Defaults to false, meaning fixtures will not be used at all.
 	 */
 	protected $fixtures=false;
@@ -50,7 +52,7 @@ abstract class CDbTestCase extends CTestCase
 	/**
 	 * PHP magic method.
 	 * This method is overridden so that named fixture data can be accessed like a normal property.
-	 * @param string the property name
+	 * @param string $name the property name
 	 * @return mixed the property value
 	 */
 	public function __get($name)
@@ -64,8 +66,8 @@ abstract class CDbTestCase extends CTestCase
 	/**
 	 * PHP magic method.
 	 * This method is overridden so that named fixture ActiveRecord instances can be accessed in terms of a method call.
-	 * @param string method name
-	 * @param string method parameters
+	 * @param string $name method name
+	 * @param string $params method parameters
 	 * @return mixed the property value
 	 */
 	public function __call($name,$params)
@@ -85,7 +87,7 @@ abstract class CDbTestCase extends CTestCase
 	}
 
 	/**
-	 * @param string the fixture name (the key value in {@link fixtures}).
+	 * @param string $name the fixture name (the key value in {@link fixtures}).
 	 * @return array the named fixture data
 	 */
 	public function getFixtureData($name)
@@ -94,8 +96,8 @@ abstract class CDbTestCase extends CTestCase
 	}
 
 	/**
-	 * @param string the fixture name (the key value in {@link fixtures}).
-	 * @param string the alias of the fixture data row
+	 * @param string $name the fixture name (the key value in {@link fixtures}).
+	 * @param string $alias the alias of the fixture data row
 	 * @return CActiveRecord the ActiveRecord instance corresponding to the specified alias in the named fixture.
 	 * False is returned if there is no such fixture or the record cannot be found.
 	 */

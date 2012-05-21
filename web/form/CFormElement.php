@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -13,8 +13,12 @@
  *
  * CFormElement implements the way to get and set arbitrary attributes.
  *
+ * @property boolean $visible Whether this element is visible and should be rendered.
+ * @property mixed $parent The direct parent of this element. This could be either a {@link CForm} object or a {@link CBaseController} object
+ * (a controller or a widget).
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CFormElement.php 1820 2010-02-19 03:03:01Z qiang.xue $
+ * @version $Id: CFormElement.php 3426 2011-10-25 00:01:09Z alexander.makarow $
  * @package system.web.form
  * @since 1.1
  */
@@ -36,8 +40,8 @@ abstract class CFormElement extends CComponent
 
 	/**
 	 * Constructor.
-	 * @param mixed the configuration for this element.
-	 * @param mixed the direct parent of this element.
+	 * @param mixed $config the configuration for this element.
+	 * @param mixed $parent the direct parent of this element.
 	 * @see configure
 	 */
 	public function __construct($config,$parent)
@@ -66,7 +70,7 @@ abstract class CFormElement extends CComponent
 	 * $value=$element->propertyName;
 	 * $value=$element->attributeName;
 	 * </pre>
-	 * @param string the property or attribute name
+	 * @param string $name the property or attribute name
 	 * @return mixed the property or attribute value
 	 * @throws CException if the property or attribute is not defined
 	 * @see __set
@@ -91,8 +95,8 @@ abstract class CFormElement extends CComponent
 	 * $this->propertyName=$value;
 	 * $this->attributeName=$value;
 	 * </pre>
-	 * @param string the property or attribute name
-	 * @param mixed the property or attribute value
+	 * @param string $name the property or attribute name
+	 * @param mixed $value the property or attribute value
 	 * @see __get
 	 */
 	public function __set($name,$value)
@@ -106,7 +110,7 @@ abstract class CFormElement extends CComponent
 
 	/**
 	 * Configures this object with property initial values.
-	 * @param mixed the configuration for this object. This can be an array
+	 * @param mixed $config the configuration for this object. This can be an array
 	 * representing the property names and their initial values.
 	 * It can also be a string representing the file name of the PHP script
 	 * that returns a configuration array.
@@ -135,7 +139,7 @@ abstract class CFormElement extends CComponent
 	}
 
 	/**
-	 * @param boolean whether this element is visible and should be rendered.
+	 * @param boolean $value whether this element is visible and should be rendered.
 	 */
 	public function setVisible($value)
 	{

@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -19,7 +19,7 @@
  * to true, the output will not be echoed anymore. Otherwise (by default), the output will be echoed.
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: COutputProcessor.php 1678 2010-01-07 21:02:00Z qiang.xue $
+ * @version $Id: COutputProcessor.php 2799 2011-01-01 19:31:13Z qiang.xue $
  * @package system.web.widgets
  * @since 1.0
  */
@@ -51,7 +51,7 @@ class COutputProcessor extends CFilterWidget
 	 * The default implementation raises an {@link onProcessOutput} event.
 	 * If the event is not handled by any event handler, the output will be echoed.
 	 *
-	 * @param string the captured output to be processed
+	 * @param string $output the captured output to be processed
 	 */
 	public function processOutput($output)
 	{
@@ -68,7 +68,7 @@ class COutputProcessor extends CFilterWidget
 
 	/**
 	 * Raised when the output has been captured.
-	 * @param COutputEvent event parameter
+	 * @param COutputEvent $event event parameter
 	 */
 	public function onProcessOutput($event)
 	{

@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -32,11 +32,11 @@
  * to improve the throughput.
  *
  * CStatePersister is a core application component used to store global application state.
- * It may be accessed via {@link CApplication::getStatePersister)}.
+ * It may be accessed via {@link CApplication::getStatePersister()}.
  * page state persistent method based on cache.
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CStatePersister.php 1678 2010-01-07 21:02:00Z qiang.xue $
+ * @version $Id: CStatePersister.php 3515 2011-12-28 12:29:24Z mdomba $
  * @package system.base
  * @since 1.0
  */
@@ -52,7 +52,6 @@ class CStatePersister extends CApplicationComponent implements IStatePersister
 	 * @var string the ID of the cache application component that is used to cache the state values.
 	 * Defaults to 'cache' which refers to the primary cache application component.
 	 * Set this property to false if you want to disable caching state values.
-	 * @since 1.0.10
 	 */
 	public $cacheID='cache';
 
@@ -100,7 +99,7 @@ class CStatePersister extends CApplicationComponent implements IStatePersister
 
 	/**
 	 * Saves application state in persistent storage.
-	 * @param mixed state data (must be serializable).
+	 * @param mixed $state state data (must be serializable).
 	 */
 	public function save($state)
 	{

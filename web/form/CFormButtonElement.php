@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -30,8 +30,10 @@
  * stored in {@link attributes} which will be passed as HTML attribute values to the {@link CHtml} method
  * generating the button or initial values of the widget properties.
  *
+ * @property string $on Scenario names separated by commas. Defaults to null.
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CFormButtonElement.php 2312 2010-08-09 14:28:17Z alexander.makarow $
+ * @version $Id: CFormButtonElement.php 3426 2011-10-25 00:01:09Z alexander.makarow $
  * @package system.web.form
  * @since 1.1
  */
@@ -81,7 +83,7 @@ class CFormButtonElement extends CFormElement
 	}
 
 	/**
-	 * @param string scenario names separated by commas.
+	 * @param string $value scenario names separated by commas.
 	 */
 	public function setOn($value)
 	{

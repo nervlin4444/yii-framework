@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -17,7 +17,7 @@
  * There is {@link http://www.learningjquery.com/2010/06/autocomplete-migration-guide a good migration guide from the author of both JavaScript solutions}.
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CAutoComplete.php 2250 2010-07-07 22:26:15Z alexander.makarow $
+ * @version $Id: CAutoComplete.php 3515 2011-12-28 12:29:24Z mdomba $
  * @package system.web.widgets
  * @since 1.0
  * @deprecated in 1.1.3
@@ -27,7 +27,6 @@ class CAutoComplete extends CInputWidget
 	/**
 	 * @var boolean whether to show the autocomplete using a text area. Defaults to false,
 	 * meaning a text field is used.
-	 * @since 1.0.4
 	 */
 	public $textArea=false;
 	/**
@@ -209,8 +208,6 @@ class CAutoComplete extends CInputWidget
 			$this->htmlOptions['id']=$id;
 		if(isset($this->htmlOptions['name']))
 			$name=$this->htmlOptions['name'];
-		else
-			$this->htmlOptions['name']=$name;
 
 		$this->registerClientScript();
 
@@ -228,7 +225,6 @@ class CAutoComplete extends CInputWidget
 
 	/**
 	 * Registers the needed CSS and JavaScript.
-	 * @since 1.0.1
 	 */
 	public function registerClientScript()
 	{
@@ -254,8 +250,7 @@ class CAutoComplete extends CInputWidget
 
 	/**
 	 * Registers the needed CSS file.
-	 * @param string the CSS URL. If null, a default CSS URL will be used.
-	 * @since 1.0.2
+	 * @param string $url the CSS URL. If null, a default CSS URL will be used.
 	 */
 	public static function registerCssFile($url=null)
 	{

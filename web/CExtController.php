@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -16,8 +16,10 @@
  * so that it points to the "views" subdirectory under the directory containing
  * the controller class file.
  *
+ * @property string $viewPath The directory containing the view files for this controller.
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CExtController.php 1678 2010-01-07 21:02:00Z qiang.xue $
+ * @version $Id: CExtController.php 3515 2011-12-28 12:29:24Z mdomba $
  * @package system.web
  * @since 1.0
  */
@@ -43,8 +45,7 @@ class CExtController extends CController
 	}
 
 	/**
-	 * @param string the directory containing the view files for this controller.
-	 * @since 1.0.1
+	 * @param string $value the directory containing the view files for this controller.
 	 */
 	public function setViewPath($value)
 	{

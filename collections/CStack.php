@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -22,8 +22,11 @@
  * foreach($stack as $item) ...
  * </pre>
  *
+ * @property Iterator $iterator An iterator for traversing the items in the stack.
+ * @property integer $count The number of items in the stack.
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CStack.php 1678 2010-01-07 21:02:00Z qiang.xue $
+ * @version $Id: CStack.php 3427 2011-10-25 00:03:52Z alexander.makarow $
  * @package system.collections
  * @since 1.0
  */
@@ -43,7 +46,7 @@ class CStack extends CComponent implements IteratorAggregate,Countable
 	/**
 	 * Constructor.
 	 * Initializes the stack with an array or an iterable object.
-	 * @param array the initial data. Default is null, meaning no initialization.
+	 * @param array $data the initial data. Default is null, meaning no initialization.
 	 * @throws CException If data is not null and neither an array nor an iterator.
 	 */
 	public function __construct($data=null)
@@ -63,7 +66,7 @@ class CStack extends CComponent implements IteratorAggregate,Countable
 	/**
 	 * Copies iterable data into the stack.
 	 * Note, existing data in the list will be cleared first.
-	 * @param mixed the data to be copied from, must be an array or object implementing Traversable
+	 * @param mixed $data the data to be copied from, must be an array or object implementing Traversable
 	 * @throws CException If data is neither an array nor a Traversable.
 	 */
 	public function copyFrom($data)
@@ -91,7 +94,7 @@ class CStack extends CComponent implements IteratorAggregate,Countable
 	}
 
 	/**
-	 * @param mixed the item
+	 * @param mixed $item the item
 	 * @return boolean whether the stack contains the item
 	 */
 	public function contains($item)
@@ -131,7 +134,7 @@ class CStack extends CComponent implements IteratorAggregate,Countable
 
 	/**
 	 * Pushes an item into the stack.
-	 * @param mixed the item to be pushed into the stack
+	 * @param mixed $item the item to be pushed into the stack
 	 */
 	public function push($item)
 	{
@@ -150,6 +153,7 @@ class CStack extends CComponent implements IteratorAggregate,Countable
 	}
 
 	/**
+	 * Returns the number of items in the stack.
 	 * @return integer the number of items in the stack
 	 */
 	public function getCount()

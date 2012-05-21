@@ -7,9 +7,9 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
- * @version $Id: mimeTypes.php 1678 2010-01-07 21:02:00Z qiang.xue $
+ * @version $Id: mimeTypes.php 3181 2011-04-15 01:26:52Z alexander.makarow $
  */
 
 return array(
@@ -170,7 +170,7 @@ return array(
 	'xlm'=>'application/vnd.ms-excel',
 	'xls'=>'application/vnd.ms-excel',
 	'xlw'=>'application/vnd.ms-excel',
-	'xml'=>'text/xml',
+	'xml'=>'application/xml',
 	'xpm'=>'image/x-xpixmap',
 	'xwd'=>'image/x-xwindowdump',
 	'xyz'=>'chemical/x-pdb',

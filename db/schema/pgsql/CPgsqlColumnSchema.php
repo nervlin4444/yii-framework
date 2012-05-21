@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -12,7 +12,7 @@
  * CPgsqlColumnSchema class describes the column meta data of a PostgreSQL table.
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CPgsqlColumnSchema.php 2228 2010-06-25 19:56:58Z qiang.xue $
+ * @version $Id: CPgsqlColumnSchema.php 2799 2011-01-01 19:31:13Z qiang.xue $
  * @package system.db.schema.pgsql
  * @since 1.0
  */
@@ -20,11 +20,11 @@ class CPgsqlColumnSchema extends CDbColumnSchema
 {
 	/**
 	 * Extracts the PHP type from DB type.
-	 * @param string DB type
+	 * @param string $dbType DB type
 	 */
 	protected function extractType($dbType)
 	{
-		if(strpos($dbType,'char')!==false || strpos($dbType,'text')!==false)
+		if(strpos($dbType,'[')!==false || strpos($dbType,'char')!==false || strpos($dbType,'text')!==false)
 			$this->type='string';
 		else if(strpos($dbType,'bool')!==false)
 			$this->type='boolean';
@@ -39,7 +39,7 @@ class CPgsqlColumnSchema extends CDbColumnSchema
 	/**
 	 * Extracts the default value for the column.
 	 * The value is typecasted to correct PHP type.
-	 * @param mixed the default value obtained from metadata
+	 * @param mixed $defaultValue the default value obtained from metadata
 	 */
 	protected function extractDefault($defaultValue)
 	{

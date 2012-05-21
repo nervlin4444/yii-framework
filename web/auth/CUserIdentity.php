@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -17,8 +17,11 @@
  * By default, CUserIdentity assumes the {@link username} is a unique identifier
  * and thus use it as the {@link id ID} of the identity.
  *
+ * @property string $id The unique identifier for the identity.
+ * @property string $name The display name for the identity.
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CUserIdentity.php 1678 2010-01-07 21:02:00Z qiang.xue $
+ * @version $Id: CUserIdentity.php 3426 2011-10-25 00:01:09Z alexander.makarow $
  * @package system.web.auth
  * @since 1.0
  */
@@ -35,8 +38,8 @@ class CUserIdentity extends CBaseUserIdentity
 
 	/**
 	 * Constructor.
-	 * @param string username
-	 * @param string password
+	 * @param string $username username
+	 * @param string $password password
 	 */
 	public function __construct($username,$password)
 	{

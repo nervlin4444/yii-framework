@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -14,7 +14,7 @@
  * CBaseListView implements the common features needed by a view wiget for rendering multiple models.
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CBaseListView.php 2326 2010-08-20 17:02:07Z qiang.xue $
+ * @version $Id: CBaseListView.php 3101 2011-03-22 17:35:19Z qiang.xue $
  * @package zii.widgets
  * @since 1.1
  */
@@ -123,8 +123,8 @@ abstract class CBaseListView extends CWidget
 
 		echo CHtml::openTag($this->tagName,$this->htmlOptions)."\n";
 
-		$this->renderKeys();
 		$this->renderContent();
+		$this->renderKeys();
 
 		echo CHtml::closeTag($this->tagName);
 	}
@@ -146,7 +146,7 @@ abstract class CBaseListView extends CWidget
 	 * Renders a section.
 	 * This method is invoked by {@link renderContent} for every placeholder found in {@link template}.
 	 * It should return the rendering result that would replace the placeholder.
-	 * @param array the matches, where $matches[0] represents the whole placeholder,
+	 * @param array $matches the matches, where $matches[0] represents the whole placeholder,
 	 * while $matches[1] contains the name of the matched placeholder.
 	 * @return string the rendering result of the section
 	 */
@@ -184,7 +184,7 @@ abstract class CBaseListView extends CWidget
 			'title'=>Yii::app()->getRequest()->getUrl(),
 		));
 		foreach($this->dataProvider->getKeys() as $key)
-			echo "<span>$key</span>";
+			echo "<span>".CHtml::encode($key)."</span>";
 		echo "</div>\n";
 	}
 
@@ -202,11 +202,18 @@ abstract class CBaseListView extends CWidget
 			if(($summaryText=$this->summaryText)===null)
 				$summaryText=Yii::t('zii','Displaying {start}-{end} of {count} result(s).');
 			$pagination=$this->dataProvider->getPagination();
+			$total=$this->dataProvider->getTotalItemCount();
 			$start=$pagination->currentPage*$pagination->pageSize+1;
+			$end=$start+$count-1;
+			if($end>$total)
+			{
+				$end=$total;
+				$start=$end-$count+1;
+			}
 			echo strtr($summaryText,array(
 				'{start}'=>$start,
-				'{end}'=>$start+$count-1,
-				'{count}'=>$this->dataProvider->getTotalItemCount(),
+				'{end}'=>$end,
+				'{count}'=>$total,
 				'{page}'=>$pagination->currentPage+1,
 				'{pages}'=>$pagination->pageCount,
 			));
@@ -215,7 +222,13 @@ abstract class CBaseListView extends CWidget
 		{
 			if(($summaryText=$this->summaryText)===null)
 				$summaryText=Yii::t('zii','Total {count} result(s).');
-			echo strtr($summaryText,array('{count}'=>$count));
+			echo strtr($summaryText,array(
+				'{count}'=>$count,
+				'{start}'=>1,
+				'{end}'=>$count,
+				'{page}'=>1,
+				'{pages}'=>1,
+			));
 		}
 		echo '</div>';
 	}

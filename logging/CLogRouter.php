@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -32,7 +32,7 @@
  *                 array(
  *                     'class'=>'CEmailLogRoute',
  *                     'levels'=>'error, warning',
- *                     'email'=>'admin@example.com',
+ *                     'emails'=>array('admin@example.com'),
  *                 ),
  *             ),
  *         ),
@@ -43,8 +43,10 @@
  * You can specify multiple routes with different filtering conditions and different
  * targets, even if the routes are of the same type.
  *
+ * @property array $routes The currently initialized routes.
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CLogRouter.php 1678 2010-01-07 21:02:00Z qiang.xue $
+ * @version $Id: CLogRouter.php 3426 2011-10-25 00:01:09Z alexander.makarow $
  * @package system.logging
  * @since 1.0
  */
@@ -78,7 +80,7 @@ class CLogRouter extends CApplicationComponent
 	}
 
 	/**
-	 * @param array list of route configurations. Each array element represents
+	 * @param array $config list of route configurations. Each array element represents
 	 * the configuration for a single route and has the following array structure:
 	 * <ul>
 	 * <li>class: specifies the class name or alias for the route class.</li>
@@ -94,22 +96,23 @@ class CLogRouter extends CApplicationComponent
 	/**
 	 * Collects log messages from a logger.
 	 * This method is an event handler to the {@link CLogger::onFlush} event.
-	 * @param CEvent event parameter
+	 * @param CEvent $event event parameter
 	 */
 	public function collectLogs($event)
 	{
 		$logger=Yii::getLogger();
+		$dumpLogs=isset($event->params['dumpLogs']) && $event->params['dumpLogs'];
 		foreach($this->_routes as $route)
 		{
 			if($route->enabled)
-				$route->collectLogs($logger,false);
+				$route->collectLogs($logger,$dumpLogs);
 		}
 	}
 
 	/**
 	 * Collects and processes log messages from a logger.
 	 * This method is an event handler to the {@link CApplication::onEndRequest} event.
-	 * @param CEvent event parameter
+	 * @param CEvent $event event parameter
 	 * @since 1.1.0
 	 */
 	public function processLogs($event)

@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -15,7 +15,7 @@
  * in the controller, where the name 'XYZ' can be retrieved from the {@link name} property.
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CInlineFilter.php 1678 2010-01-07 21:02:00Z qiang.xue $
+ * @version $Id: CInlineFilter.php 3026 2011-03-06 10:41:56Z haertl.mike $
  * @package system.web.filters
  * @since 1.0
  */
@@ -30,8 +30,8 @@ class CInlineFilter extends CFilter
 	 * Creates an inline filter instance.
 	 * The creation is based on a string describing the inline method name
 	 * and action names that the filter shall or shall not apply to.
-	 * @param CController the controller who hosts the filter methods
-	 * @param string the filter name
+	 * @param CController $controller the controller who hosts the filter methods
+	 * @param string $filterName the filter name
 	 * @return CInlineFilter the created instance
 	 * @throws CException if the filter method does not exist
 	 */
@@ -44,14 +44,14 @@ class CInlineFilter extends CFilter
 			return $filter;
 		}
 		else
-			throw new CException(Yii::t('yii','Filter "{filter}" is invalid. Controller "{class}" does have the filter method "filter{filter}".',
+			throw new CException(Yii::t('yii','Filter "{filter}" is invalid. Controller "{class}" does not have the filter method "filter{filter}".',
 				array('{filter}'=>$filterName, '{class}'=>get_class($controller))));
 	}
 
 	/**
 	 * Performs the filtering.
 	 * This method calls the filter method defined in the controller class.
-	 * @param CFilterChain the filter chain that the filter is on.
+	 * @param CFilterChain $filterChain the filter chain that the filter is on.
 	 */
 	public function filter($filterChain)
 	{

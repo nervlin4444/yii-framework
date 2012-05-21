@@ -4,15 +4,28 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
 /**
  * CNumberValidator validates that the attribute value is a number.
  *
+ * In addition to the {@link message} property for setting a custom error message,
+ * CNumberValidator has a couple custom error messages you can set that correspond to different
+ * validation scenarios. To specify a custom message when the numeric value is too big, 
+ * you may use the {@link tooBig} property. Similarly with {@link tooSmall}.
+ * The messages may contain additional placeholders that will be replaced 
+ * with the actual content. In addition to the "{attribute}" placeholder, recognized by all 
+ * validators (see {@link CValidator}), CNumberValidator allows for the following placeholders 
+ * to be specified:
+ * <ul>
+ * <li>{min}: when using {@link tooSmall}, replaced with the lower limit of the number {@link min}.</li>
+ * <li>{max}: when using {@link tooBig}, replaced with the upper limit of the number {@link max}.</li>
+ * </ul>
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CNumberValidator.php 1678 2010-01-07 21:02:00Z qiang.xue $
+ * @version $Id: CNumberValidator.php 3491 2011-12-17 05:17:57Z jefftulsa $
  * @package system.validators
  * @since 1.0
  */
@@ -28,11 +41,11 @@ class CNumberValidator extends CValidator
 	 */
 	public $allowEmpty=true;
 	/**
-	 * @var integer|double upper limit of the number. Defaults to null, meaning no upper limit.
+	 * @var integer|float upper limit of the number. Defaults to null, meaning no upper limit.
 	 */
 	public $max;
 	/**
-	 * @var integer|double lower limit of the number. Defaults to null, meaning no lower limit.
+	 * @var integer|float lower limit of the number. Defaults to null, meaning no lower limit.
 	 */
 	public $min;
 	/**
@@ -43,13 +56,23 @@ class CNumberValidator extends CValidator
 	 * @var string user-defined error message used when the value is too small.
 	 */
 	public $tooSmall;
+	/**
+	 * @var string the regular expression for matching integers.
+	 * @since 1.1.7
+	 */
+	public $integerPattern='/^\s*[+-]?\d+\s*$/';
+	/**
+	 * @var string the regular expression for matching numbers.
+	 * @since 1.1.7
+	 */
+	public $numberPattern='/^\s*[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?\s*$/';
 
 
 	/**
 	 * Validates the attribute of the object.
 	 * If there is any error, the error message is added to the object.
-	 * @param CModel the object being validated
-	 * @param string the attribute being validated
+	 * @param CModel $object the object being validated
+	 * @param string $attribute the attribute being validated
 	 */
 	protected function validateAttribute($object,$attribute)
 	{
@@ -58,7 +81,7 @@ class CNumberValidator extends CValidator
 			return;
 		if($this->integerOnly)
 		{
-			if(!preg_match('/^\s*[+-]?\d+\s*$/',"$value"))
+			if(!preg_match($this->integerPattern,"$value"))
 			{
 				$message=$this->message!==null?$this->message:Yii::t('yii','{attribute} must be an integer.');
 				$this->addError($object,$attribute,$message);
@@ -66,7 +89,7 @@ class CNumberValidator extends CValidator
 		}
 		else
 		{
-			if(!preg_match('/^\s*[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?\s*$/',"$value"))
+			if(!preg_match($this->numberPattern,"$value"))
 			{
 				$message=$this->message!==null?$this->message:Yii::t('yii','{attribute} must be a number.');
 				$this->addError($object,$attribute,$message);
@@ -82,5 +105,72 @@ class CNumberValidator extends CValidator
 			$message=$this->tooBig!==null?$this->tooBig:Yii::t('yii','{attribute} is too big (maximum is {max}).');
 			$this->addError($object,$attribute,$message,array('{max}'=>$this->max));
 		}
+	}
+
+	/**
+	 * Returns the JavaScript needed for performing client-side validation.
+	 * @param CModel $object the data object being validated
+	 * @param string $attribute the name of the attribute to be validated.
+	 * @return string the client-side validation script.
+	 * @see CActiveForm::enableClientValidation
+	 * @since 1.1.7
+	 */
+	public function clientValidateAttribute($object,$attribute)
+	{
+		$label=$object->getAttributeLabel($attribute);
+
+		if(($message=$this->message)===null)
+			$message=$this->integerOnly ? Yii::t('yii','{attribute} must be an integer.') : Yii::t('yii','{attribute} must be a number.');
+		$message=strtr($message, array(
+			'{attribute}'=>$label,
+		));
+
+		if(($tooBig=$this->tooBig)===null)
+			$tooBig=Yii::t('yii','{attribute} is too big (maximum is {max}).');
+		$tooBig=strtr($tooBig, array(
+			'{attribute}'=>$label,
+			'{max}'=>$this->max,
+		));
+
+		if(($tooSmall=$this->tooSmall)===null)
+			$tooSmall=Yii::t('yii','{attribute} is too small (minimum is {min}).');
+		$tooSmall=strtr($tooSmall, array(
+			'{attribute}'=>$label,
+			'{min}'=>$this->min,
+		));
+
+		$pattern=$this->integerOnly ? $this->integerPattern : $this->numberPattern;
+		$js="
+if(!value.match($pattern)) {
+	messages.push(".CJSON::encode($message).");
+}
+";
+		if($this->min!==null)
+		{
+			$js.="
+if(value<{$this->min}) {
+	messages.push(".CJSON::encode($tooSmall).");
+}
+";
+		}
+		if($this->max!==null)
+		{
+			$js.="
+if(value>{$this->max}) {
+	messages.push(".CJSON::encode($tooBig).");
+}
+";
+		}
+
+		if($this->allowEmpty)
+		{
+			$js="
+if($.trim(value)!='') {
+	$js
+}
+";
+		}
+
+		return $js;
 	}
 }

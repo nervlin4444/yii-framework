@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -39,12 +39,12 @@
  * For more details about cache dependency, see {@link CCacheDependency}.
  *
  * Sometimes, it is necessary to turn off output caching only for certain request types.
- * For exapmle, we only want to cache a form when it is initially requested;
+ * For example, we only want to cache a form when it is initially requested;
  * any subsequent display of the form should not be cached because it contains user input.
  * We can set {@link requestTypes} to be <code>array('GET')</code> to accomplish this task.
  *
  * The content fetched from cache may be variated with respect to
- * some parameters. COutputCache supports two kinds of variations:
+ * some parameters. COutputCache supports four kinds of variations:
  * <ul>
  * <li>{@link varyByRoute}: this specifies whether the cached content
  *   should be varied with the requested route (controller and action)</li>
@@ -57,8 +57,10 @@
  * </ul>
  * For more advanced variation, override {@link getBaseCacheKey()} method.
  *
+ * @property boolean $isContentCached Whether the content can be found from cache.
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: COutputCache.php 1678 2010-01-07 21:02:00Z qiang.xue $
+ * @version $Id: COutputCache.php 3515 2011-12-28 12:29:24Z mdomba $
  * @package system.web.widgets
  * @since 1.0
  */
@@ -71,7 +73,11 @@ class COutputCache extends CFilterWidget
 
 	/**
 	 * @var integer number of seconds that the data can remain in cache. Defaults to 60 seconds.
-	 * If 0 or negative, it means the cache is disabled. Note, if cache dependency changes or cache space is limited,
+	 * If it is 0, existing cached content would be removed from the cache.
+	 * If it is a negative value, the cache will be disabled (any existing cached content will
+	 * remain in the cache.)
+	 *
+	 * Note, if cache dependency changes or cache space is limited,
 	 * the data may be purged out of cache earlier.
 	 */
 	public $duration=60;
@@ -95,14 +101,13 @@ class COutputCache extends CFilterWidget
 	 * @var string a PHP expression whose result is used in the cache key calculation.
 	 * By setting this property, the output cache will use different cached data
 	 * for each different expression result.
-	 * Starting from version 1.0.11, the expression can also be a valid PHP callback,
+	 * The expression can also be a valid PHP callback,
 	 * including class method name (array(ClassName/Object, MethodName)),
 	 * or anonymous function (PHP 5.3.0+). The function/method signature should be as follows:
 	 * <pre>
 	 * function foo($cache) { ... }
 	 * </pre>
 	 * where $cache refers to the output cache component.
-	 * @since 1.0.4
 	 */
 	public $varyByExpression;
 	/**
@@ -138,11 +143,11 @@ class COutputCache extends CFilterWidget
 	/**
 	 * Performs filtering before the action is executed.
 	 * This method is meant to be overridden by child classes if begin-filtering is needed.
+	 * @param CFilterChain $filterChain list of filters being applied to an action
 	 * @return boolean whether the filtering process should stop after this filter. Defaults to false.
 	 */
 	public function filter($filterChain)
 	{
-		$this->init();
 		if(!$this->getIsContentCached())
 			$filterChain->run();
 		$this->run();
@@ -188,7 +193,7 @@ class COutputCache extends CFilterWidget
 			$data=array($this->_content,$this->_actions);
 			if(is_array($this->dependency))
 				$this->dependency=Yii::createComponent($this->dependency);
-			$this->_cache->set($this->getCacheKey(),$data,$this->duration>0 ? $this->duration : 0,$this->dependency);
+			$this->_cache->set($this->getCacheKey(),$data,$this->duration,$this->dependency);
 
 			if($this->getController()->isCachingStackEmpty())
 				echo $this->getController()->processDynamicOutput($this->_content);
@@ -215,14 +220,18 @@ class COutputCache extends CFilterWidget
 	protected function checkContentCache()
 	{
 		if((empty($this->requestTypes) || in_array(Yii::app()->getRequest()->getRequestType(),$this->requestTypes))
-			&& $this->duration>0 && ($this->_cache=$this->getCache())!==null)
+			&& ($this->_cache=$this->getCache())!==null)
 		{
-			if(($data=$this->_cache->get($this->getCacheKey()))!==false)
+			if($this->duration>0 && ($data=$this->_cache->get($this->getCacheKey()))!==false)
 			{
 				$this->_content=$data[0];
 				$this->_actions=$data[1];
 				return true;
 			}
+			if($this->duration==0)
+				$this->_cache->delete($this->getCacheKey());
+			if($this->duration<=0)
+				$this->_cache=null;
 		}
 		return false;
 	}
@@ -298,10 +307,10 @@ class COutputCache extends CFilterWidget
 	 * Records a method call when this output cache is in effect.
 	 * When the content is served from the output cache, the recorded
 	 * method will be re-invoked.
-	 * @param string a property name of the controller. The property should refer to an object
+	 * @param string $context a property name of the controller. The property should refer to an object
 	 * whose method is being recorded. If empty it means the controller itself.
-	 * @param string the method name
-	 * @param array parameters passed to the method
+	 * @param string $method the method name
+	 * @param array $params parameters passed to the method
 	 */
 	public function recordAction($context,$method,$params)
 	{

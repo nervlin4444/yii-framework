@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -15,8 +15,13 @@
  * Optionally, you may set the email {@link setSubject subject}, the
  * {@link setSentFrom sentFrom} address and any additional {@link setHeaders headers}.
  *
+ * @property array $emails List of destination email addresses.
+ * @property string $subject Email subject. Defaults to CEmailLogRoute::DEFAULT_SUBJECT.
+ * @property string $sentFrom Send from address of the email.
+ * @property array $headers Additional headers to use when sending an email.
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CEmailLogRoute.php 2364 2010-08-29 13:40:49Z keyboard.idol@gmail.com $
+ * @version $Id: CEmailLogRoute.php 3426 2011-10-25 00:01:09Z alexander.makarow $
  * @package system.logging
  * @since 1.0
  */
@@ -41,7 +46,7 @@ class CEmailLogRoute extends CLogRoute
 
 	/**
 	 * Sends log messages to specified email addresses.
-	 * @param array list of log messages
+	 * @param array $logs list of log messages
 	 */
 	protected function processLogs($logs)
 	{
@@ -58,9 +63,9 @@ class CEmailLogRoute extends CLogRoute
 
 	/**
 	 * Sends an email.
-	 * @param string single email address
-	 * @param string email subject
-	 * @param string email content
+	 * @param string $email single email address
+	 * @param string $subject email subject
+	 * @param string $message email content
 	 */
 	protected function sendEmail($email,$subject,$message)
 	{
@@ -79,7 +84,7 @@ class CEmailLogRoute extends CLogRoute
 	}
 
 	/**
-	 * @param mixed list of destination email addresses. If the value is
+	 * @param mixed $value list of destination email addresses. If the value is
 	 * a string, it is assumed to be comma-separated email addresses.
 	 */
 	public function setEmails($value)
@@ -99,7 +104,7 @@ class CEmailLogRoute extends CLogRoute
 	}
 
 	/**
-	 * @param string email subject.
+	 * @param string $value email subject.
 	 */
 	public function setSubject($value)
 	{
@@ -115,7 +120,7 @@ class CEmailLogRoute extends CLogRoute
 	}
 
 	/**
-	 * @param string send from address of the email
+	 * @param string $value send from address of the email
 	 */
 	public function setSentFrom($value)
 	{
@@ -132,7 +137,7 @@ class CEmailLogRoute extends CLogRoute
 	}
 
 	/**
-	 * @param mixed list of additional headers to use when sending an email.
+	 * @param mixed $value list of additional headers to use when sending an email.
 	 * If the value is a string, it is assumed to be line break separated headers.
 	 * @since 1.1.4
 	 */

@@ -19,19 +19,11 @@
 <?php foreach($columns as $column): ?>
  * @property <?php echo $column->type.' $'.$column->name."\n"; ?>
 <?php endforeach; ?>
+<?php if(!empty($relations)): ?>
  *
  * The followings are the available model relations:
 <?php foreach($relations as $name=>$relation): ?>
  * @property <?php
-    $relationTypes = array(
-		'' => '',
-		'' => '',
-		'' => 'array',
-		'' => 'array',
-	);
-
-	$type = 'mixed';
-
 	if (preg_match("~^array\(self::([^,]+), '([^']+)', '([^']+)'\)$~", $relation, $matches))
     {
         $relationType = $matches[1];
@@ -56,11 +48,13 @@
 	}
     ?>
 <?php endforeach; ?>
+<?php endif; ?>
  */
 class <?php echo $modelClass; ?> extends <?php echo $this->baseClass."\n"; ?>
 {
 	/**
 	 * Returns the static model of the specified AR class.
+	 * @param string $className active record class name.
 	 * @return <?php echo $modelClass; ?> the static model class
 	 */
 	public static function model($className=__CLASS__)
@@ -144,7 +138,7 @@ foreach($columns as $name=>$column)
 }
 ?>
 
-		return new CActiveDataProvider(get_class($this), array(
+		return new CActiveDataProvider($this, array(
 			'criteria'=>$criteria,
 		));
 	}

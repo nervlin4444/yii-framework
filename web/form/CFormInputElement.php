@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -34,8 +34,12 @@
  * stored in {@link attributes} which will be passed as HTML attribute values to the {@link CHtml} method
  * generating the input or initial values of the widget properties.
  *
+ * @property boolean $required Whether this input is required.
+ * @property string $label The label for this input. If the label is not manually set,
+ * this method will call {@link CModel::getAttributeLabel} to determine the label.
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CFormInputElement.php 2411 2010-09-01 20:21:57Z qiang.xue $
+ * @version $Id: CFormInputElement.php 3426 2011-10-25 00:01:09Z alexander.makarow $
  * @package system.web.form
  * @since 1.1
  */
@@ -79,11 +83,27 @@ class CFormInputElement extends CFormElement
 	public $items=array();
 	/**
 	 * @var array the options used when rendering the error part. This property will be passed
-	 * to the {@link CActiveForm::error} method call.
+	 * to the {@link CActiveForm::error} method call as its $htmlOptions parameter.
 	 * @see CActiveForm::error
 	 * @since 1.1.1
 	 */
 	public $errorOptions=array();
+	/**
+	 * @var boolean whether to allow AJAX-based validation for this input. Note that in order to use
+	 * AJAX-based validation, {@link CForm::activeForm} must be configured with 'enableAjaxValidation'=>true.
+	 * This property allows turning on or off  AJAX-based validation for individual input fields.
+	 * Defaults to true.
+	 * @since 1.1.7
+	 */
+	public $enableAjaxValidation=true;
+	/**
+	 * @var boolean whether to allow client-side validation for this input. Note that in order to use
+	 * client-side validation, {@link CForm::activeForm} must be configured with 'enableClientValidation'=>true.
+	 * This property allows turning on or off  client-side validation for individual input fields.
+	 * Defaults to true.
+	 * @since 1.1.7
+	 */
+	public $enableClientValidation=true;
 	/**
 	 * @var string the layout used to render label, input, hint and error. They correspond to the placeholders
 	 * "{label}", "{input}", "{hint}" and "{error}".
@@ -108,7 +128,7 @@ class CFormInputElement extends CFormElement
 	}
 
 	/**
-	 * @param boolean whether this input is required.
+	 * @param boolean $value whether this input is required.
 	 */
 	public function setRequired($value)
 	{
@@ -128,7 +148,7 @@ class CFormInputElement extends CFormElement
 	}
 
 	/**
-	 * @param string the label for this input
+	 * @param string $value the label for this input
 	 */
 	public function setLabel($value)
 	{
@@ -209,7 +229,7 @@ class CFormInputElement extends CFormElement
 	public function renderError()
 	{
 		$parent=$this->getParent();
-		return $parent->getActiveFormWidget()->error($parent->getModel(), $this->name, $this->errorOptions);
+		return $parent->getActiveFormWidget()->error($parent->getModel(), $this->name, $this->errorOptions, $this->enableAjaxValidation, $this->enableClientValidation);
 	}
 
 	/**

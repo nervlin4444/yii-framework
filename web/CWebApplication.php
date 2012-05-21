@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -36,15 +36,30 @@
  * For example, the controller 'article' is defined by the class 'ArticleController'
  * which is in the file 'protected/controllers/ArticleController.php'.
  *
+ * @property IAuthManager $authManager The authorization manager component.
+ * @property CAssetManager $assetManager The asset manager component.
+ * @property CHttpSession $session The session component.
+ * @property CWebUser $user The user session information.
+ * @property IViewRenderer $viewRenderer The view renderer.
+ * @property CClientScript $clientScript The client script manager.
+ * @property IWidgetFactory $widgetFactory The widget factory.
+ * @property CThemeManager $themeManager The theme manager.
+ * @property CTheme $theme The theme used currently. Null if no theme is being used.
+ * @property CController $controller The currently active controller.
+ * @property string $controllerPath The directory that contains the controller classes. Defaults to 'protected/controllers'.
+ * @property string $viewPath The root directory of view files. Defaults to 'protected/views'.
+ * @property string $systemViewPath The root directory of system view files. Defaults to 'protected/views/system'.
+ * @property string $layoutPath The root directory of layout files. Defaults to 'protected/views/layouts'.
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CWebApplication.php 2172 2010-06-07 19:56:01Z qiang.xue $
+ * @version $Id: CWebApplication.php 3515 2011-12-28 12:29:24Z mdomba $
  * @package system.web
  * @since 1.0
  */
 class CWebApplication extends CApplication
 {
 	/**
-	 * @return string the ID of the default controller. Defaults to 'site'.
+	 * @return string the route of the default controller, action or module. Defaults to 'site'.
 	 */
 	public $defaultController='site';
 	/**
@@ -99,7 +114,6 @@ class CWebApplication extends CApplication
 	private $_systemViewPath;
 	private $_layoutPath;
 	private $_controller;
-	private $_homeUrl;
 	private $_theme;
 
 
@@ -118,7 +132,6 @@ class CWebApplication extends CApplication
 		}
 		else
 			$route=$this->getUrlManager()->parseUrl($this->getRequest());
-if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.".".__FUNCTION__,$this->getRequest());
 		$this->runController($route);
 	}
 
@@ -240,7 +253,7 @@ if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.".".__FUNCTION_
 	}
 
 	/**
-	 * @param string the theme name
+	 * @param string $value the theme name
 	 */
 	public function setTheme($value)
 	{
@@ -248,75 +261,12 @@ if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.".".__FUNCTION_
 	}
 
 	/**
-	 * Creates a relative URL based on the given controller and action information.
-	 * @param string the URL route. This should be in the format of 'ControllerID/ActionID'.
-	 * @param array additional GET parameters (name=>value). Both the name and value will be URL-encoded.
-	 * @param string the token separating name-value pairs in the URL.
-	 * @return string the constructed URL
-	 */
-	public function createUrl($route,$params=array(),$ampersand='&')
-	{
-		return $this->getUrlManager()->createUrl($route,$params,$ampersand);
-	}
-
-	/**
-	 * Creates an absolute URL based on the given controller and action information.
-	 * @param string the URL route. This should be in the format of 'ControllerID/ActionID'.
-	 * @param array additional GET parameters (name=>value). Both the name and value will be URL-encoded.
-	 * @param string schema to use (e.g. http, https). If empty, the schema used for the current request will be used.
-	 * @param string the token separating name-value pairs in the URL.
-	 * @return string the constructed URL
-	 */
-	public function createAbsoluteUrl($route,$params=array(),$schema='',$ampersand='&')
-	{
-		return $this->getRequest()->getHostInfo($schema).$this->createUrl($route,$params,$ampersand);
-	}
-
-	/**
-	 * Returns the relative URL for the application.
-	 * This is a shortcut method to {@link CHttpRequest::getBaseUrl()}.
-	 * @param boolean whether to return an absolute URL. Defaults to false, meaning returning a relative one.
-	 * This parameter has been available since 1.0.2.
-	 * @return string the relative URL for the application
-	 * @see CHttpRequest::getBaseUrl()
-	 */
-	public function getBaseUrl($absolute=false)
-	{
-		return $this->getRequest()->getBaseUrl($absolute);
-	}
-
-	/**
-	 * @return string the homepage URL
-	 */
-	public function getHomeUrl()
-	{
-		if($this->_homeUrl===null)
-		{
-			if($this->getUrlManager()->showScriptName)
-				return $this->getRequest()->getScriptUrl();
-			else
-				return $this->getRequest()->getBaseUrl().'/';
-		}
-		else
-			return $this->_homeUrl;
-	}
-
-	/**
-	 * @param string the homepage URL
-	 */
-	public function setHomeUrl($value)
-	{
-		$this->_homeUrl=$value;
-	}
-
-	/**
 	 * Creates the controller and performs the specified action.
-	 * @param string the route of the current request. See {@link createController} for more details.
+	 * @param string $route the route of the current request. See {@link createController} for more details.
 	 * @throws CHttpException if the controller could not be created.
 	 */
 	public function runController($route)
 	{
-if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.".".__FUNCTION__,$route);
 		if(($ca=$this->createController($route))!==null)
 		{
 			list($controller,$actionID)=$ca;
@@ -346,8 +296,8 @@ if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.".".__FUNCTION_
 	 * the corresponding controller. For example, if the route is "admin/user/create",
 	 * then the controller will be created using the class file "protected/controllers/admin/UserController.php".</li>
 	 * </ol>
-	 * @param string the route of the request.
-	 * @param CWebModule the module that the new controller will belong to. Defaults to null, meaning the application
+	 * @param string $route the route of the request.
+	 * @param CWebModule $owner the module that the new controller will belong to. Defaults to null, meaning the application
 	 * instance is the owner.
 	 * @return array the controller instance and the action ID. Null if the controller class does not exist or the route is invalid.
 	 */
@@ -409,9 +359,8 @@ if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.".".__FUNCTION_
 
 	/**
 	 * Parses a path info into an action ID and GET variables.
-	 * @param string path info
+	 * @param string $pathInfo path info
 	 * @return string action ID
-	 * @since 1.0.3
 	 */
 	protected function parseActionParams($pathInfo)
 	{
@@ -435,8 +384,7 @@ if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.".".__FUNCTION_
 	}
 
 	/**
-	 * @param CController the currently active controller
-	 * @since 1.0.6
+	 * @param CController $value the currently active controller
 	 */
 	public function setController($value)
 	{
@@ -455,7 +403,7 @@ if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.".".__FUNCTION_
 	}
 
 	/**
-	 * @param string the directory that contains the controller classes.
+	 * @param string $value the directory that contains the controller classes.
 	 * @throws CException if the directory is invalid
 	 */
 	public function setControllerPath($value)
@@ -477,7 +425,7 @@ if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.".".__FUNCTION_
 	}
 
 	/**
-	 * @param string the root directory of view files.
+	 * @param string $path the root directory of view files.
 	 * @throws CException if the directory does not exist.
 	 */
 	public function setViewPath($path)
@@ -499,7 +447,7 @@ if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.".".__FUNCTION_
 	}
 
 	/**
-	 * @param string the root directory of system view files.
+	 * @param string $path the root directory of system view files.
 	 * @throws CException if the directory does not exist.
 	 */
 	public function setSystemViewPath($path)
@@ -521,7 +469,7 @@ if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.".".__FUNCTION_
 	}
 
 	/**
-	 * @param string the root directory of layout files.
+	 * @param string $path the root directory of layout files.
 	 * @throws CException if the directory does not exist.
 	 */
 	public function setLayoutPath($path)
@@ -536,10 +484,9 @@ if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.".".__FUNCTION_
 	 * This method is invoked before the currently requested controller action and all its filters
 	 * are executed. You may override this method with logic that needs to be done
 	 * before all controller actions.
-	 * @param CController the controller
-	 * @param CAction the action
+	 * @param CController $controller the controller
+	 * @param CAction $action the action
 	 * @return boolean whether the action should be executed.
-	 * @since 1.0.4
 	 */
 	public function beforeControllerAction($controller,$action)
 	{
@@ -551,20 +498,17 @@ if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.".".__FUNCTION_
 	 * This method is invoked after the currently requested controller action and all its filters
 	 * are executed. You may override this method with logic that needs to be done
 	 * after all controller actions.
-	 * @param CController the controller
-	 * @param CAction the action
-	 * @since 1.0.4
+	 * @param CController $controller the controller
+	 * @param CAction $action the action
 	 */
 	public function afterControllerAction($controller,$action)
 	{
 	}
 
 	/**
-	 * Searches for a module by its ID.
-	 * This method is used internally. Do not call this method.
-	 * @param string module ID
+	 * Do not call this method. This method is used internally to search for a module by its ID.
+	 * @param string $id module ID
 	 * @return CWebModule the module that has the specified ID. Null if no module is found.
-	 * @since 1.0.3
 	 */
 	public function findModule($id)
 	{

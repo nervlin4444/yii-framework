@@ -4,7 +4,7 @@
  *
  * @author Sebastian Thierer <sebathi@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -38,7 +38,7 @@ Yii::import('zii.widgets.jui.CJuiWidget');
  * for possible options (name-value pairs).
  *
  * @author Sebastian Thierer <sebathi@gmail.com>
- * @version $Id: CJuiTabs.php 2342 2010-08-25 17:43:03Z qiang.xue $
+ * @version $Id: CJuiTabs.php 3400 2011-09-22 00:47:39Z sebathi $
  * @package zii.widgets.jui
  * @since 1.1
  */
@@ -67,7 +67,7 @@ class CJuiTabs extends CJuiWidget
 	 * The token "{title}" in the template will be replaced with the panel title and
 	 * the token "{url}" will be replaced with "#TabID" or with the url of the ajax request.
 	 */
-	public $headerTemplate='<li><a href="{url}">{title}</a></li>';
+	public $headerTemplate='<li><a href="{url}" title="{id}">{title}</a></li>';
 	/**
 	 * @var string the template that is used to generated every tab content.
 	 * The token "{content}" in the template will be replaced with the panel content
@@ -82,7 +82,10 @@ class CJuiTabs extends CJuiWidget
 	public function run()
 	{
 		$id=$this->getId();
-		$this->htmlOptions['id']=$id;
+		if (isset($this->htmlOptions['id']))
+			$id = $this->htmlOptions['id'];
+		else
+			$this->htmlOptions['id']=$id;
 
 		echo CHtml::openTag($this->tagName,$this->htmlOptions)."\n";
 
@@ -94,16 +97,20 @@ class CJuiTabs extends CJuiWidget
 		{
 			$tabId = (is_array($content) && isset($content['id']))?$content['id']:$id.'_tab_'.$tabCount++;
 
-			if (!is_array($content)){
-				$tabsOut .= strtr($this->headerTemplate, array('{title}'=>$title, '{url}'=>'#'.$tabId))."\n";
+			if (!is_array($content))
+			{
+				$tabsOut .= strtr($this->headerTemplate, array('{title}'=>$title, '{url}'=>'#'.$tabId, '{id}'=>'#' . $tabId))."\n";
 				$contentOut .= strtr($this->contentTemplate, array('{content}'=>$content,'{id}'=>$tabId))."\n";
-
-			}elseif (isset($content['content'])){
-				$tabsOut .= strtr($this->headerTemplate, array('{title}'=>$title, '{url}'=>'#'.$tabId))."\n";
-				$contentOut .= strtr($this->contentTemplate, array('{content}'=>$content['content'],'{id}'=>$tabId))."\n";
-
-			}elseif (isset($content['ajax'])){
-				$tabsOut .= strtr($this->headerTemplate,array('{title}'=>$title, '{url}'=>CHtml::normalizeUrl($content['ajax'])))."\n";
+			}
+			elseif (isset($content['ajax']))
+			{
+				$tabsOut .= strtr($this->headerTemplate, array('{title}'=>$title, '{url}'=>CHtml::normalizeUrl($content['ajax']), '{id}'=>'#' . $tabId))."\n";
+			}
+			else
+			{
+				$tabsOut .= strtr($this->headerTemplate, array('{title}'=>$title, '{url}'=>'#'.$tabId, '{id}'=>$tabId))."\n";
+				if(isset($content['content']))
+					$contentOut .= strtr($this->contentTemplate, array('{content}'=>$content['content'],'{id}'=>$tabId))."\n";
 			}
 		}
 		echo "<ul>\n" . $tabsOut . "</ul>\n";

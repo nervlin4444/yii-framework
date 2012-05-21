@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -14,8 +14,13 @@
  * Do not create a CAuthAssignment instance using the 'new' operator.
  * Instead, call {@link IAuthManager::assign}.
  *
+ * @property mixed $userId User ID (see {@link IWebUser::getId}).
+ * @property string $itemName The authorization item name.
+ * @property string $bizRule The business rule associated with this assignment.
+ * @property mixed $data Additional data for this assignment.
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CAuthAssignment.php 1678 2010-01-07 21:02:00Z qiang.xue $
+ * @version $Id: CAuthAssignment.php 3426 2011-10-25 00:01:09Z alexander.makarow $
  * @package system.web.auth
  * @since 1.0
  */
@@ -29,11 +34,11 @@ class CAuthAssignment extends CComponent
 
 	/**
 	 * Constructor.
-	 * @param IAuthManager the authorization manager
-	 * @param string authorization item name
-	 * @param mixed user ID (see {@link IWebUser::getId})
-	 * @param string the business rule associated with this assignment
-	 * @param mixed additional data for this assignment
+	 * @param IAuthManager $auth the authorization manager
+	 * @param string $itemName authorization item name
+	 * @param mixed $userId user ID (see {@link IWebUser::getId})
+	 * @param string $bizRule the business rule associated with this assignment
+	 * @param mixed $data additional data for this assignment
 	 */
 	public function __construct($auth,$itemName,$userId,$bizRule=null,$data=null)
 	{
@@ -69,7 +74,7 @@ class CAuthAssignment extends CComponent
 	}
 
 	/**
-	 * @param string the business rule associated with this assignment
+	 * @param string $value the business rule associated with this assignment
 	 */
 	public function setBizRule($value)
 	{
@@ -89,7 +94,7 @@ class CAuthAssignment extends CComponent
 	}
 
 	/**
-	 * @param mixed additional data for this assignment
+	 * @param mixed $value additional data for this assignment
 	 */
 	public function setData($value)
 	{

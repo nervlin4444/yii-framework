@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -22,8 +22,10 @@
  * <li>{@link CMarkdownParser markdown with syntax highlighting}</li>
  * </ul>
  *
+ * @property CMarkdownParser $markdownParser The parser instance.
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CMarkdown.php 1678 2010-01-07 21:02:00Z qiang.xue $
+ * @version $Id: CMarkdown.php 3515 2011-12-28 12:29:24Z mdomba $
  * @package system.web.widgets
  * @since 1.0
  */
@@ -47,7 +49,7 @@ class CMarkdown extends COutputProcessor
 	 * Processes the captured output.
      * This method converts the content in markdown syntax to HTML code.
      * If {@link purifyOutput} is true, the HTML code will also be purified.
-	 * @param string the captured output to be processed
+	 * @param string $output the captured output to be processed
 	 * @see convert
 	 */
 	public function processOutput($output)
@@ -64,7 +66,7 @@ class CMarkdown extends COutputProcessor
 	/**
 	 * Converts the content in markdown syntax to HTML code.
 	 * This method uses {@link CMarkdownParser} to do the conversion.
-	 * @param string the content to be converted
+	 * @param string $output the content to be converted
 	 * @return string the converted content
 	 */
 	public function transform($output)
@@ -75,7 +77,6 @@ class CMarkdown extends COutputProcessor
 
 	/**
 	 * Registers the needed CSS and JavaScript.
-	 * @since 1.0.1
 	 */
 	public function registerClientScript()
 	{
@@ -85,8 +86,7 @@ class CMarkdown extends COutputProcessor
 
 	/**
 	 * Registers the needed CSS file.
-	 * @param string the CSS URL. If null, a default CSS URL will be used.
-	 * @since 1.0.2
+	 * @param string $url the CSS URL. If null, a default CSS URL will be used.
 	 */
 	public static function registerCssFile($url=null)
 	{
@@ -97,8 +97,7 @@ class CMarkdown extends COutputProcessor
 	 * Returns the markdown parser instance.
 	 * This method calls {@link createMarkdownParser} to create the parser instance.
 	 * Call this method multipe times will only return the same instance.
-	 * @param CMarkdownParser the parser instance
-	 * @since 1.0.1
+	 * @return CMarkdownParser the parser instance
 	 */
 	public function getMarkdownParser()
 	{

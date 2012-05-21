@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -21,8 +21,10 @@
  * In the above, if the command name is not provided, it will display all
  * available commands.
  *
+ * @property string $help The command description.
+ *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CHelpCommand.php 1678 2010-01-07 21:02:00Z qiang.xue $
+ * @version $Id: CHelpCommand.php 3426 2011-10-25 00:01:09Z alexander.makarow $
  * @package system.console
  * @since 1.0
  */
@@ -30,7 +32,7 @@ class CHelpCommand extends CConsoleCommand
 {
 	/**
 	 * Execute the action.
-	 * @param array command line parameters specific for this command
+	 * @param array $args command line parameters specific for this command
 	 */
 	public function run($args)
 	{

@@ -4,7 +4,7 @@
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @link http://www.yiiframework.com/
- * @copyright Copyright &copy; 2008-2010 Yii Software LLC
+ * @copyright Copyright &copy; 2008-2011 Yii Software LLC
  * @license http://www.yiiframework.com/license/
  */
 
@@ -22,9 +22,8 @@
  * one can set {@link params} to be <code>array(':value'=>$value)</code>.
  *
  * @author Qiang Xue <qiang.xue@gmail.com>
- * @version $Id: CDbExpression.php 1787 2010-02-01 23:02:40Z qiang.xue $
+ * @version $Id: CDbExpression.php 3515 2011-12-28 12:29:24Z mdomba $
  * @package system.db.schema
- * @since 1.0.2
  */
 class CDbExpression extends CComponent
 {
@@ -42,7 +41,8 @@ class CDbExpression extends CComponent
 
 	/**
 	 * Constructor.
-	 * @param string the DB expression
+	 * @param string $expression the DB expression
+	 * @param array $params parameters
 	 */
 	public function __construct($expression,$params=array())
 	{
