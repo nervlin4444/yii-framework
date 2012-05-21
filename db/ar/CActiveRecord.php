@@ -37,12 +37,12 @@ abstract class CActiveRecord extends CModel
 	 */
 	public static $db;
 
-	private static $_models=array();			// class name => model
+	/*private*/ public static $_models=array();			// class name => model
 
 	private $_md;								// meta data
 	private $_new=false;						// whether this instance is new or not
 	private $_attributes=array();				// attribute name => attribute value
-	private $_related=array();					// attribute name => related objects
+	/*private*/ public $_related=array();					// attribute name => related objects
 	private $_c;								// query criteria (used by finder only)
 	private $_pk;								// old primary key value
 	private $_alias='t';						// the table alias being used for query
@@ -349,6 +349,7 @@ abstract class CActiveRecord extends CModel
 		else
 		{
 			$model=self::$_models[$className]=new $className(null);
+
 			$model->_md=new CActiveRecordMetaData($model);
 			$model->attachBehaviors($model->behaviors());
 			return $model;
@@ -377,6 +378,8 @@ abstract class CActiveRecord extends CModel
 	public function refreshMetaData()
 	{
 		$finder=self::model(get_class($this));
+// zzz(__FUNCTION__,CActiveRecord::$_models,$finder,
+// PortfolioBM::getInstance()->getAR('article'));
 		$finder->_md=new CActiveRecordMetaData($finder);
 		if($this!==$finder)
 			$this->_md=$finder->_md;
@@ -1222,6 +1225,7 @@ abstract class CActiveRecord extends CModel
 
 	private function query($criteria,$all=false)
 	{
+// xxx(__FUNCTION__,$this->relations(),$this->getMetaData(),$criteria->with);		
 		$this->beforeFind();
 		$this->applyScopes($criteria);
 		if(empty($criteria->with))
@@ -1229,8 +1233,8 @@ abstract class CActiveRecord extends CModel
 			if(!$all)
 				$criteria->limit=1;
 			$command=$this->getCommandBuilder()->createFindCommand($this->getTableSchema(),$criteria);
-//www($command);
-//zzz($command);
+//www(__FUNCTION__,$command);
+//zzz(__FUNCTION__,$command);
 			return $all ? $this->populateRecords($command->queryAll()) : $this->populateRecord($command->queryRow());
 		}
 		else
@@ -1441,11 +1445,12 @@ abstract class CActiveRecord extends CModel
 	 */
 	public function count($condition='',$params=array())
 	{
+// xxx(__CLASS__.".".__FUNCTION__,$this->getMetaData());
 		Yii::trace(get_class($this).'.count()','system.db.ar.CActiveRecord');
 		$builder=$this->getCommandBuilder();
 		$criteria=$builder->createCriteria($condition,$params);
-		$this->applyScopes($criteria);
 
+		$this->applyScopes($criteria);
 		if(empty($criteria->with))
 			return $builder->createCountCommand($this->getTableSchema(),$criteria)->queryScalar();
 		else
@@ -2161,7 +2166,7 @@ class CActiveRecordMetaData
 	 * @param CActiveRecord the model instance
 	 */
 	public function __construct($model)
-	{
+	{	
 		$this->_model=$model;
 		$tableName=$model->tableName();
 		if(($table=$model->getDbConnection()->getSchema()->getTable($tableName))===null)
@@ -2177,11 +2182,17 @@ class CActiveRecordMetaData
 			if(!$column->isPrimaryKey && $column->defaultValue!==null)
 				$this->attributeDefaults[$name]=$column->defaultValue;
 		}
-
 		foreach($model->relations() as $name=>$config)
 		{
 			$this->addRelation($name,$config);
 		}
+
+// if($model->getTableAlias()!='t'&&$model->relations()==array()){
+// xxx(__CLASS__.".".__FUNCTION__."	".get_class($model)."	".$model->getTableAlias().
+// "	may be first run in addXXXJoin",
+// $model->relations(),$this->relations);
+//}
+ 
 	}
 
 	/**

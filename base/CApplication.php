@@ -557,7 +557,9 @@ abstract class CApplication extends CModule
 	 */
 	public function handleException($exception)
 	{
-return;//kevin for xdebug to show exception
+//kevin for xdebug to show error
+if(class_exists('Linz',false))if(Linz::$DEBUG===true){return;}
+
 		// disable error capturing to avoid recursive errors
 		restore_error_handler();
 		restore_exception_handler();
@@ -610,7 +612,8 @@ return;//kevin for xdebug to show exception
 	 */
 	public function handleError($code,$message,$file,$line)
 	{
-return;//kevin for xdebug to show error
+//kevin for xdebug to show error
+if(class_exists('Linz',false))if(Linz::$DEBUG===true){return;}
 		if($code & error_reporting())
 		{
 			// disable error capturing to avoid recursive errors
@@ -701,7 +704,7 @@ return;//kevin for xdebug to show error
 	 * @param string error line
 	 */
 	public function displayError($code,$message,$file,$line)
-	{
+	{if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.".".__METHOD__,$message);
 		if(YII_DEBUG)
 		{
 			echo "<h1>PHP Error [$code]</h1>\n";
@@ -724,7 +727,7 @@ return;//kevin for xdebug to show error
 	 * @param Exception the uncaught exception
 	 */
 	public function displayException($exception)
-	{
+	{if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.".".__METHOD__,$message);
 		if(YII_DEBUG)
 		{
 			echo '<h1>'.get_class($exception)."</h1>\n";
@@ -743,6 +746,10 @@ return;//kevin for xdebug to show error
 	 */
 	protected function initSystemHandlers()
 	{
+//kevin for xdebug to show error
+if(class_exists("Linz",false))
+if(Linz::$DEBUG===true){return;}
+		
 		if(YII_ENABLE_EXCEPTION_HANDLER)
 			set_exception_handler(array($this,'handleException'));
 		if(YII_ENABLE_ERROR_HANDLER)

@@ -327,6 +327,7 @@ abstract class CModule extends CComponent
 				$this->_moduleConfig[$id]=CMap::mergeArray($this->_moduleConfig[$id],$module);
 			else
 				$this->_moduleConfig[$id]=$module;
+if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.".".__FUNCTION__,$this->_moduleConfig[$id]['class']);
 		}
 	}
 

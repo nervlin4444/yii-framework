@@ -46,6 +46,7 @@ class CActiveFinder extends CComponent
 	 */
 	public function __construct($model,$with)
 	{
+//xxx(__CLASS__,__FUNCTION__,$model->relations(),$model->getMetaData()->relations,$with);		
 		$this->_builder=$model->getCommandBuilder();
 		$this->_joinTree=new CJoinElement($this,$model);
 		$this->buildJoinTree($this->_joinTree,$with);
@@ -161,6 +162,7 @@ class CActiveFinder extends CComponent
 
 		if(is_string($with))
 		{
+
 			if(($pos=strrpos($with,'.'))!==false)
 			{
 				$parent=$this->buildJoinTree($parent,substr($with,0,$pos));
@@ -176,7 +178,8 @@ class CActiveFinder extends CComponent
 
 			if(isset($parent->children[$with]))
 				return $parent->children[$with];
-
+			
+//   xxx(__FUNCTION__,$parent->model->relations(),$parent->model->getMetaData()->relations,$with);
 			if(($relation=$parent->model->getActiveRelation($with))===null)
 				throw new CDbException(Yii::t('yii','Relation "{name}" is not defined in active record class "{class}".',
 					array('{class}'=>get_class($parent->model), '{name}'=>$with)));
@@ -825,9 +828,10 @@ class CJoinElement
 						$selected[$alias]=1;
 					}
 				}
-				else
+				else{
+xxx(__FUNCTION__,$this->_columnAliases);					
 					throw new CDbException(Yii::t('yii','Active record "{class}" is trying to select an invalid column "{column}". Note, the column must exist in the table or be an expression with alias.',
-						array('{class}'=>get_class($this->model), '{column}'=>$name)));
+						array('{class}'=>get_class($this->model), '{column}'=>$name)));}
 			}
 			// add primary key selection if they are not selected
 			if(is_string($this->_pkAlias) && !isset($selected[$this->_pkAlias]))

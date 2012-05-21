@@ -231,7 +231,7 @@ class CFormatter extends CApplicationComponent
 	 */
 	public function formatNumber($value)
 	{
-		return number_format($value,$this->numberFormat['decimals'],$this->numberFormat['decimalSeparator'],$this->numberFormat['thousandSeparator']);
+		return number_format(floatval($value),$this->numberFormat['decimals'],$this->numberFormat['decimalSeparator'],$this->numberFormat['thousandSeparator']);
 	}
 
 	/**

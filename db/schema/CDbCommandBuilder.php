@@ -95,8 +95,8 @@ class CDbCommandBuilder extends CComponent
 		$sql=$this->applyOrder($sql,$criteria->order);
 		$sql=$this->applyLimit($sql,$criteria->limit,$criteria->offset);
 		
-if(Linz::$DEBUG)
-www("cdbCommandBuilder",$sql,$criteria->params);
+//if(Linz::$DEBUG)
+//www("cdbCommandBuilder",$sql,$criteria->params);
 
 		$command=$this->_connection->createCommand($sql);
 		$this->bindValues($command,$criteria->params);

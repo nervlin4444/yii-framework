@@ -109,6 +109,7 @@ class YiiBase
 	 */
 	public static function createApplication($class,$config=null)
 	{
+if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.'.'.__METHOD__,$class);
 		return new $class($config);
 	}
 

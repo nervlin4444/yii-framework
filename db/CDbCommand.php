@@ -360,7 +360,8 @@ class CDbCommand extends CComponent
 		{
 			if($this->_connection->enableProfiling)
 				Yii::beginProfile('system.db.CDbCommand.query('.$this->getText().')','system.db.CDbCommand.query');
-//www("cdbCommand.queryInternal",$this->getText());
+if(class_exists('Linz',false))
+www("cdbCommand.queryInternal",$this->getText());
 			$this->prepare();
 			if($params===array())
 				$this->_statement->execute();
@@ -385,6 +386,7 @@ class CDbCommand extends CComponent
 			if($this->_connection->enableProfiling)
 				Yii::endProfile('system.db.CDbCommand.query('.$this->getText().')','system.db.CDbCommand.query');
 			Yii::log('Error in querying SQL: '."seesee dump".$this->getText().$par,CLogger::LEVEL_ERROR,'system.db.CDbCommand');
+if(class_exists('Linz',false))if(Linz::$DEBUG)
 www("cdbCommand.queryInternal",$this->getText());
             $errorInfo = $e instanceof PDOException ? $e->errorInfo : null;
 			throw new CDbException(Yii::t('yii','CDbCommand failed to execute the SQL statement: {error}',

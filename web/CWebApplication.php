@@ -118,6 +118,7 @@ class CWebApplication extends CApplication
 		}
 		else
 			$route=$this->getUrlManager()->parseUrl($this->getRequest());
+if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.".".__FUNCTION__,$this->getRequest());
 		$this->runController($route);
 	}
 
@@ -314,7 +315,8 @@ class CWebApplication extends CApplication
 	 * @throws CHttpException if the controller could not be created.
 	 */
 	public function runController($route)
-	{//zzz($route);
+	{
+if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.".".__FUNCTION__,$route);
 		if(($ca=$this->createController($route))!==null)
 		{
 			list($controller,$actionID)=$ca;
