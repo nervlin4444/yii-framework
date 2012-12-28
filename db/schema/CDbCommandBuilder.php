@@ -273,7 +273,6 @@ class CDbCommandBuilder extends CComponent
 		$sql=$this->applyCondition($sql,$criteria->condition);
 		$sql=$this->applyOrder($sql,$criteria->order);
 		$sql=$this->applyLimit($sql,$criteria->limit,$criteria->offset);
-
 		$command=$this->_connection->createCommand($sql);
 		$this->bindValues($command,array_merge($values,$criteria->params));
 

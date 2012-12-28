@@ -94,7 +94,6 @@ class CErrorHandler extends CApplicationComponent
 	{
 		// set event as handled to prevent it from being handled by other event handlers
 		$event->handled=true;
-
 		if($this->discardOutput)
 		{
 			// the following manual level counting is to deal with zlib.output_compression set to On
@@ -164,7 +163,6 @@ class CErrorHandler extends CApplicationComponent
 
 				unset($trace[$i]['object']);
 			}
-
 			$this->_error=$data=array(
 				'code'=>($exception instanceof CHttpException)?$exception->statusCode:500,
 				'type'=>get_class($exception),

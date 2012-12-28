@@ -160,6 +160,7 @@ abstract class CApplication extends CModule
 		if($this->hasEventHandler('onBeginRequest'))
 			$this->onBeginRequest(new CEvent($this));
 		$this->processRequest();
+// zzz(__CLASS__.".".__FUNCTION__,Yii::app()->getAssetManager());
 		if($this->hasEventHandler('onEndRequest'))
 			$this->onEndRequest(new CEvent($this));
 	}
@@ -701,7 +702,6 @@ abstract class CApplication extends CModule
 			$message.="\nHTTP_REFERER=".$_SERVER['HTTP_REFERER'];
 		$message.="\n---";
 		Yii::log($message,CLogger::LEVEL_ERROR,$category);
-
 		try
 		{
 			$event=new CExceptionEvent($this,$exception);
@@ -757,6 +757,8 @@ abstract class CApplication extends CModule
 	 */
 	public function handleError($code,$message,$file,$line)
 	{
+//kevin for xdebug to show error
+if(class_exists('Linz',false)&&Linz::$DEBUG===true)return;
 		if($code & error_reporting())
 		{
 			// disable error capturing to avoid recursive errors
@@ -863,6 +865,7 @@ abstract class CApplication extends CModule
 	 */
 	public function displayError($code,$message,$file,$line)
 	{
+if(class_exists('ThreadTime',false))ThreadTime::record(__CLASS__.".".__METHOD__,$message);
 		if(YII_DEBUG)
 		{
 			echo "<h1>PHP Error [$code]</h1>\n";
@@ -922,6 +925,8 @@ abstract class CApplication extends CModule
 	 */
 	protected function initSystemHandlers()
 	{
+//kevin for xdebug to show error
+if(class_exists("Linz",false)&&Linz::$DEBUG===true)return;
 		if(YII_ENABLE_EXCEPTION_HANDLER)
 			set_exception_handler(array($this,'handleException'));
 		if(YII_ENABLE_ERROR_HANDLER)

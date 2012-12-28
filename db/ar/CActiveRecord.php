@@ -53,12 +53,12 @@ abstract class CActiveRecord extends CModel
 	 */
 	public static $db;
 
-	private static $_models=array();			// class name => model
+	public /*private*/ static $_models=array();			// class name => model
 
 	private $_md;								// meta data
 	private $_new=false;						// whether this instance is new or not
-	private $_attributes=array();				// attribute name => attribute value
-	private $_related=array();					// attribute name => related objects
+	public /*private*/ $_attributes=array();				// attribute name => attribute value
+	public /*private*/ $_related=array();					// attribute name => related objects
 	private $_c;								// query criteria (used by finder only)
 	private $_pk;								// old primary key value
 	private $_alias='t';						// the table alias being used for query
@@ -1011,6 +1011,7 @@ abstract class CActiveRecord extends CModel
 			$builder=$this->getCommandBuilder();
 			$table=$this->getMetaData()->tableSchema;
 			$command=$builder->createInsertCommand($table,$this->getAttributes($attributes));
+// zzz(__FUNCTION__,$command,$attributes);			
 			if($command->execute())
 			{
 				$primaryKey=$table->primaryKey;

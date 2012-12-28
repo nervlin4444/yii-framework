@@ -279,10 +279,12 @@ abstract class CModule extends CComponent
 				Yii::trace("Loading \"$id\" module",'system.base.CModule');
 				$class=$config['class'];
 				unset($config['class'], $config['enabled']);
+				
 				if($this===Yii::app())
 					$module=Yii::createComponent($class,$id,null,$config);
 				else
 					$module=Yii::createComponent($class,$this->getId().'/'.$id,$this,$config);
+
 				return $this->_modules[$id]=$module;
 			}
 		}
@@ -348,7 +350,6 @@ abstract class CModule extends CComponent
 				Yii::setPathOfAlias($id,$this->getModulePath().DIRECTORY_SEPARATOR.$id);
 				$module['class']=$id.'.'.ucfirst($id).'Module';
 			}
-
 			if(isset($this->_moduleConfig[$id]))
 				$this->_moduleConfig[$id]=CMap::mergeArray($this->_moduleConfig[$id],$module);
 			else

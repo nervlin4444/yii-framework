@@ -323,6 +323,7 @@ class CDbCommand extends CComponent
 		}
 		else
 			$par='';
+//zzz(__CLASS__.".".__FUNCTION__,$this->getText().$par);		
 		Yii::trace('Executing SQL: '.$this->getText().$par,'system.db.CDbCommand');
 		try
 		{
@@ -343,6 +344,9 @@ class CDbCommand extends CComponent
 		}
 		catch(Exception $e)
 		{
+if(class_exists('Linz',false))if(Linz::$DEBUG)
+www("cdbCommand.execute",$this->getText().$par);	
+
 			if($this->_connection->enableProfiling)
 				Yii::endProfile('system.db.CDbCommand.execute('.$this->getText().')','system.db.CDbCommand.execute');
             $errorInfo = $e instanceof PDOException ? $e->errorInfo : null;
@@ -491,7 +495,13 @@ class CDbCommand extends CComponent
 		{
 			if($this->_connection->enableProfiling)
 				Yii::beginProfile('system.db.CDbCommand.query('.$this->getText().$par.')','system.db.CDbCommand.query');
-
+// if(strpos($this->getText(),"tbl_comment")!==false)			
+// if(strpos($this->getText(),"SHOW ")===false){
+// www("cdbCommand.queryInternal",$this->getText().$par);			
+// zzz("cdbCommand.queryInternal",$this->getText().$par);}
+	
+if(class_exists('Linz',false)&&stripos($this->getText(),"JOIN ")!==false)
+www("cdbCommand.queryInternal",$this->getText().$par);
 			$this->prepare();
 			if($params===array())
 				$this->_statement->execute();
@@ -519,6 +529,8 @@ class CDbCommand extends CComponent
 		{
 			if($this->_connection->enableProfiling)
 				Yii::endProfile('system.db.CDbCommand.query('.$this->getText().$par.')','system.db.CDbCommand.query');
+if(class_exists('Linz',false))if(Linz::$DEBUG)
+	www("cdbCommand.queryInternal",$this->getText().$par);			
             $errorInfo = $e instanceof PDOException ? $e->errorInfo : null;
             $message = $e->getMessage();
 			Yii::log(Yii::t('yii','CDbCommand::{method}() failed: {error}. The SQL statement executed was: {sql}.',

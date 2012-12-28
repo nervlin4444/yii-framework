@@ -267,6 +267,9 @@ class CWebApplication extends CApplication
 	 */
 	public function runController($route)
 	{
+
+// xxx(__CLASS__.".".__FUNCTION__."	".$route);
+
 		if(($ca=$this->createController($route))!==null)
 		{
 			list($controller,$actionID)=$ca;
@@ -327,7 +330,8 @@ class CWebApplication extends CApplication
 						$this->parseActionParams($route),
 					);
 				}
-
+//xxx($route,$id,$caseSensitive,$this->modules,$owner->getModule('AjaxModule'));
+				
 				if(($module=$owner->getModule($id))!==null)
 					return $this->createController($route,$module);
 

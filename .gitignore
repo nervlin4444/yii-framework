@@ -1,4 +1,10 @@
+<<<<<<< HEAD
 /.buildpath
 /.project
 /.settings/*
+=======
+.buildpath
+.project
+.settings/*
+>>>>>>> refs/remotes/github
 	
