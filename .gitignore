@@ -1,10 +1,4 @@
-<<<<<<< HEAD
-/.buildpath
-/.project
-/.settings/*
-=======
+.gitignore
 .buildpath
 .project
 .settings/*
->>>>>>> refs/remotes/github
-	
